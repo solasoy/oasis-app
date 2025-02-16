@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600">
+  <!-- Background -->
+  <rect width="800" height="600" fill="#f8fafc"/>
+  
+  <!-- Navigation Bar -->
+  <rect x="20" y="20" width="760" height="40" fill="#ffffff" stroke="#e2e8f0" stroke-width="2"/>
+  <text x="40" y="45" font-family="Arial" font-size="14" fill="#64748b">Home</text>
+  <text x="120" y="45" font-family="Arial" font-size="14" fill="#64748b">Apply</text>
+  <text x="200" y="45" font-family="Arial" font-size="14" fill="#64748b">Payment</text>
+  <text x="300" y="45" font-family="Arial" font-size="14" fill="#64748b">Donations</text>
+  <text x="400" y="45" font-family="Arial" font-size="14" fill="#64748b">Dashboard</text>
+  <text x="500" y="45" font-family="Arial" font-size="14" fill="#64748b">Admin</text>
+  
+  <!-- Home Page Content -->
+  <g id="home-page">
+    <text x="40" y="100" font-family="Arial" font-size="24" font-weight="bold" fill="#1e293b">OCC Oasis - Garden Experience</text>
+    <text x="40" y="130" font-family="Arial" font-size="14" fill="#64748b">Welcome to our couples retreat experience. Join us for a rejuvenating getaway.</text>
+    <rect x="40" y="150" width="100" height="30" rx="4" fill="#3b82f6"/>
+    <text x="60" y="170" font-family="Arial" font-size="14" fill="#ffffff">Apply Now</text>
+  </g>
+
+  <!-- Routes Preview -->
+  <g id="routes-preview">
+    <rect x="40" y="200" width="720" height="360" fill="#ffffff" stroke="#e2e8f0" stroke-width="2"/>
+    
+    <!-- Route Examples -->
+    <g id="route-examples">
+      <text x="60" y="240" font-family="Arial" font-size="16" font-weight="bold" fill="#1e293b">Application Form</text>
+      <rect x="60" y="260" width="200" height="120" fill="#f1f5f9" rx="4"/>
+      
+      <text x="300" y="240" font-family="Arial" font-size="16" font-weight="bold" fill="#1e293b">Payment Portal</text>
+      <rect x="300" y="260" width="200" height="120" fill="#f1f5f9" rx="4"/>
+      
+      <text x="540" y="240" font-family="Arial" font-size="16" font-weight="bold" fill="#1e293b">Attendee Dashboard</text>
+      <rect x="540" y="260" width="200" height="120" fill="#f1f5f9" rx="4"/>
+      
+      <text x="60" y="420" font-family="Arial" font-size="16" font-weight="bold" fill="#1e293b">Admin Panel</text>
+      <rect x="60" y="440" width="680" height="100" fill="#f1f5f9" rx="4"/>
+      <text x="80" y="470" font-family="Arial" font-size="12" fill="#64748b">• Configure Retreat Details</text>
+      <text x="80" y="490" font-family="Arial" font-size="12" fill="#64748b">• Send Communications</text>
+      <text x="80" y="510" font-family="Arial" font-size="12" fill="#64748b">• Retrieve Attendee Data</text>
+    </g>
+  </g>
+  
+  <!-- Note about responsive design -->
+  <text x="40" y="580" font-family="Arial" font-size="12" fill="#94a3b8">* Wireframe shows desktop layout. All components are responsive and will adjust for mobile devices.</text>
+</svg>
