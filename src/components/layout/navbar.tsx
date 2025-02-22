@@ -5,7 +5,6 @@ import { NavLink } from '@/components/ui/nav-link';
 const navItems = [
   { name: 'Home', href: '/' },
   { name: 'Apply', href: '/apply' },
-  { name: 'Payment', href: '/payment' },
   { name: 'Donations', href: '/donate' },
   { name: 'Dashboard', href: '/dashboard' },
   { name: 'Admin', href: '/admin' },

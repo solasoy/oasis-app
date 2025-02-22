@@ -27,7 +27,7 @@ export default function HomePage() {
 
       {/* Features Grid */}
       <div className="mt-12">
-        <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-8 sm:grid-cols-2">
           {/* Application */}
           <div className="bg-white overflow-hidden shadow rounded-lg">
             <div className="px-4 py-5 sm:p-6">
@@ -40,22 +40,6 @@ export default function HomePage() {
                 className="mt-3 inline-flex items-center text-sm font-medium text-blue-600 hover:text-blue-500"
               >
                 Start Application <span className="ml-1">→</span>
-              </Link>
-            </div>
-          </div>
-
-          {/* Payment */}
-          <div className="bg-white overflow-hidden shadow rounded-lg">
-            <div className="px-4 py-5 sm:p-6">
-              <h3 className="text-lg font-medium text-gray-900">Payment</h3>
-              <p className="mt-2 text-sm text-gray-500">
-                Secure your spot by completing the payment process.
-              </p>
-              <Link
-                href="/payment"
-                className="mt-3 inline-flex items-center text-sm font-medium text-blue-600 hover:text-blue-500"
-              >
-                View Payment Options <span className="ml-1">→</span>
               </Link>
             </div>
           </div>
