@@ -1,3 +1,5 @@
+import { ApplicationForm } from '@/components/forms/application-form';
+
 export default function ApplicationPage() {
   return (
     <div className="space-y-6">
@@ -7,24 +9,23 @@ export default function ApplicationPage() {
           <p className="mt-2 text-gray-500">
             Complete your application for the OCC Oasis Garden Experience.
           </p>
-          {/* TODO: Add application form */}
-          <div className="mt-6">
-            <div className="bg-gray-50 p-4 rounded-md">
-              <p className="text-sm text-gray-700">
-                The application process includes:
-              </p>
-              <ul className="mt-2 list-disc list-inside text-sm text-gray-600 space-y-1">
-                <li>Personal information for both partners</li>
-                <li>Contact details</li>
-                <li>Emergency contact information</li>
-                <li>Agreement review and acceptance</li>
-                <li>Initial deposit payment</li>
-              </ul>
-            </div>
+          
+          <div className="mt-4 bg-gray-50 p-4 rounded-md">
+            <p className="text-sm text-gray-700">
+              The application process includes:
+            </p>
+            <ul className="mt-2 list-disc list-inside text-sm text-gray-600 space-y-1">
+              <li>Personal information for both partners</li>
+              <li>The reasons you wish to participate in this retreat</li>
+            </ul>
             <p className="mt-4 text-sm text-gray-500">
               After submitting your application, you will receive further instructions
               via email regarding the next steps in the process.
             </p>
+          </div>
+
+          <div className="mt-6">
+            <ApplicationForm />
           </div>
         </div>
       </div>
