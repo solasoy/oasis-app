@@ -1,9 +1,16 @@
-import { render } from '@testing-library/react';
-import { Loading } from '@/components/ui/loading';
+import { render, screen } from '@testing-library/react';
+import { LoadingSpinner } from '@/components/ui/loading';
 
-describe('Loading', () => {
-  it('renders loading spinner', () => {
-    const { container } = render(<Loading />);
-    expect(container.querySelector('.animate-spin')).toBeInTheDocument();
+describe('LoadingSpinner', () => {
+  it('renders without crashing', () => {
+    render(<LoadingSpinner />);
+    const spinner = screen.getByTestId('loading-spinner');
+    expect(spinner).toBeInTheDocument();
+  });
+
+  it('renders with correct styles', () => {
+    const { container } = render(<LoadingSpinner />);
+    const spinnerElement = container.querySelector('.animate-spin');
+    expect(spinnerElement).toBeInTheDocument();
   });
 }); 

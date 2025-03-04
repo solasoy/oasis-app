@@ -1,49 +1,65 @@
-export const applicantEmailTemplate = (data: any) => {
-  return `
-    <div style="font-family: Arial, sans-serif; line-height: 1.6; max-width: 600px; margin: 0 auto; padding: 20px;">
-      <div style="text-align: center; margin-bottom: 30px;">
-        <h1>Thank You for Your Application</h1>
-      </div>
-      <div style="margin-bottom: 30px;">
-        <p>Dear ${data.hisName.first} and ${data.herName.first},</p>
-        <p>We have received your application for the Marriage Retreat on ${data.retreatDate}.</p>
-        <p>Our team will review your application and respond within 5-7 business days.</p>
-        <p>If you have any questions, please don't hesitate to contact us.</p>
-      </div>
-      <div style="text-align: center; color: #666; font-size: 14px;">
-        <p>Best regards,<br>The Oasis Team</p>
-      </div>
-    </div>
-  `;
+type ApplicationData = {
+  retreat_date: string;
+  his_name: { first: string; last: string };
+  her_name: { first: string; last: string };
+  his_email: string;
+  her_email: string;
+  // ... other fields if needed
 };
 
-export const adminEmailTemplate = (data: any) => {
+export function getApplicantEmailTemplate(data: ApplicationData) {
   return `
-    <div style="font-family: Arial, sans-serif; line-height: 1.6; max-width: 600px; margin: 0 auto; padding: 20px;">
-      <div style="margin-bottom: 30px;">
-        <h1>New Retreat Application</h1>
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2 style="color: #2563eb;">Oasis Retreat Application Confirmation</h2>
+      
+      <p>Dear ${data.his_name.first} and ${data.her_name.first},</p>
+      
+      <p>Thank you for applying to the Oasis Marriage Intensive Retreat. We have received your application for the following session:</p>
+      
+      <div style="background-color: #f3f4f6; padding: 15px; margin: 20px 0; border-radius: 5px;">
+        <strong>Retreat Date:</strong> ${data.retreat_date}
       </div>
-      <div style="margin-bottom: 30px;">
-        <table style="width: 100%;">
-          <tr>
-            <td style="padding: 8px; border-bottom: 1px solid #eee;"><strong>His Name:</strong></td>
-            <td style="padding: 8px; border-bottom: 1px solid #eee;">${data.hisName.first} ${data.hisName.last}</td>
-          </tr>
-          <tr>
-            <td style="padding: 8px; border-bottom: 1px solid #eee;"><strong>Her Name:</strong></td>
-            <td style="padding: 8px; border-bottom: 1px solid #eee;">${data.herName.first} ${data.herName.last}</td>
-          </tr>
-          <tr>
-            <td style="padding: 8px; border-bottom: 1px solid #eee;"><strong>Retreat Date:</strong></td>
-            <td style="padding: 8px; border-bottom: 1px solid #eee;">${data.retreatDate}</td>
-          </tr>
-          <tr>
-            <td style="padding: 8px; border-bottom: 1px solid #eee;"><strong>Church Members:</strong></td>
-            <td style="padding: 8px; border-bottom: 1px solid #eee;">${data.isOCCMember}</td>
-          </tr>
-        </table>
-      </div>
-      <p><a href="${process.env.NEXT_PUBLIC_APP_URL}/admin/applications/${data.id}">View Full Application</a></p>
+      
+      <p>What happens next:</p>
+      <ol style="margin: 20px 0;">
+        <li>Our team will review your application</li>
+        <li>You will receive a follow-up email within 3-5 business days</li>
+        <li>If accepted, you will receive instructions for next steps</li>
+      </ol>
+      
+      <p>If you have any questions in the meantime, please don't hesitate to contact us.</p>
+      
+      <p style="margin-top: 30px;">
+        Blessings,<br>
+        The Oasis Retreat Team
+      </p>
     </div>
   `;
-}; 
+}
+
+export function getAdminEmailTemplate(data: ApplicationData) {
+  return `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2 style="color: #2563eb;">New Retreat Application Received</h2>
+      
+      <div style="background-color: #f3f4f6; padding: 20px; margin: 20px 0; border-radius: 5px;">
+        <h3 style="margin-top: 0;">Application Details:</h3>
+        <p><strong>Retreat Date:</strong> ${data.retreat_date}</p>
+        <p><strong>His Name:</strong> ${data.his_name.first} ${data.his_name.last}</p>
+        <p><strong>Her Name:</strong> ${data.her_name.first} ${data.her_name.last}</p>
+        <p><strong>Contact:</strong></p>
+        <ul>
+          <li>His Email: ${data.his_email}</li>
+          <li>Her Email: ${data.her_email}</li>
+        </ul>
+      </div>
+      
+      <p>Please review this application in the admin dashboard.</p>
+      
+      <a href="${process.env.NEXT_PUBLIC_APP_URL}/admin/applications" 
+         style="display: inline-block; background-color: #2563eb; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin-top: 20px;">
+        View Application
+      </a>
+    </div>
+  `;
+} 
