@@ -6,8 +6,8 @@ const navItems = [
   { name: 'Home', href: '/' },
   { name: 'Apply', href: '/apply' },
   { name: 'Donations', href: '/donate' },
-  { name: 'Dashboard', href: '/dashboard' },
-  { name: 'Admin', href: '/admin' },
+  { name: 'Dashboard', href: '/dashboard/login' },
+  { name: 'Admin', href: '/admin/login' },
 ];
 
 export function Navbar() {

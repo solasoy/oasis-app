@@ -17,34 +17,75 @@ export async function middleware(request: NextRequest) {
 
   // Protected routes
   const protectedPaths = ['/admin', '/dashboard'];
-  const isProtectedPath = protectedPaths.some((path) => 
-    request.nextUrl.pathname.startsWith(path)
+  
+  // Login pages should be excluded from protection
+  const loginPaths = ['/admin/login', '/dashboard/login'];
+  const isLoginPath = loginPaths.some((path) =>
+    request.nextUrl.pathname === path
   );
+  
+  const isProtectedPath = protectedPaths.some((path) =>
+    request.nextUrl.pathname.startsWith(path)
+  ) && !isLoginPath;
 
   // Admin-only routes
   const isAdminPath = request.nextUrl.pathname.startsWith('/admin');
   
   if (isProtectedPath) {
     if (!session) {
-      // Redirect to login if not authenticated
-      return NextResponse.redirect(new URL('/login', request.url));
+      // Redirect to the appropriate login page based on the route
+      if (isAdminPath) {
+        // Redirect to admin login if trying to access admin routes
+        return NextResponse.redirect(new URL('/admin/login', request.url));
+      } else {
+        // Redirect to participant login if trying to access dashboard routes
+        return NextResponse.redirect(new URL('/dashboard/login', request.url));
+      }
     }
 
-    if (isAdminPath) {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+    // Get the current user
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
-      // Check if user has admin role
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user?.id)
+    if (isAdminPath) {
+      // Check if user is in the admins table
+      const { data: adminData } = await supabase
+        .from('admins')
+        .select('*')
+        .eq('email', user?.email)
         .single();
 
-      if (profile?.role !== 'admin') {
+      if (!adminData) {
         // Redirect non-admin users to dashboard
         return NextResponse.redirect(new URL('/dashboard', request.url));
+      }
+    } else {
+      // For dashboard routes, check if user is an admin first (admins can access participant routes)
+      const { data: adminData } = await supabase
+        .from('admins')
+        .select('*')
+        .eq('email', user?.email)
+        .single();
+
+      if (!adminData) {
+        // If not an admin, check if user is a participant
+        const { data: husbandData } = await supabase
+          .from('participants')
+          .select('*')
+          .eq('husband_email', user?.email)
+          .maybeSingle();
+          
+        const { data: wifeData } = await supabase
+          .from('participants')
+          .select('*')
+          .eq('wife_email', user?.email)
+          .maybeSingle();
+          
+        // If neither an admin nor a participant, redirect to login
+        if (!husbandData && !wifeData) {
+          return NextResponse.redirect(new URL('/dashboard/login', request.url));
+        }
       }
     }
   }

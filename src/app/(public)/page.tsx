@@ -27,7 +27,7 @@ export default function HomePage() {
 
       {/* Features Grid */}
       <div className="mt-12">
-        <div className="grid grid-cols-1 gap-8 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 md:grid-cols-3">
           {/* Application */}
           <div className="bg-white overflow-hidden shadow rounded-lg">
             <div className="px-4 py-5 sm:p-6">
@@ -52,10 +52,26 @@ export default function HomePage() {
                 Access your retreat information and manage your preferences.
               </p>
               <Link
-                href="/dashboard"
+                href="/dashboard/login"
                 className="mt-3 inline-flex items-center text-sm font-medium text-blue-600 hover:text-blue-500"
               >
                 Go to Dashboard <span className="ml-1">→</span>
+              </Link>
+            </div>
+          </div>
+
+          {/* Admin */}
+          <div className="bg-white overflow-hidden shadow rounded-lg">
+            <div className="px-4 py-5 sm:p-6">
+              <h3 className="text-lg font-medium text-gray-900">Admin Portal</h3>
+              <p className="mt-2 text-sm text-gray-500">
+                Access the administrative portal to manage applications and participants.
+              </p>
+              <Link
+                href="/admin/login"
+                className="mt-3 inline-flex items-center text-sm font-medium text-blue-600 hover:text-blue-500"
+              >
+                Go to Admin Portal <span className="ml-1">→</span>
               </Link>
             </div>
           </div>
