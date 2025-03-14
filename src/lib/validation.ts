@@ -37,7 +37,7 @@ export function validateApplicationForm(formData: any): ValidationError[] {
   ];
 
   requiredFields.forEach(field => {
-    const value = field.includes('.') 
+    const value = field.includes('.')
       ? field.split('.').reduce((obj, key) => obj?.[key], formData)
       : formData[field];
     
@@ -47,4 +47,32 @@ export function validateApplicationForm(formData: any): ValidationError[] {
   });
 
   return errors;
-} 
+}
+
+/**
+ * Validates that a retreat date is in the future
+ * @param date The date string to validate
+ * @returns Array of validation errors
+ */
+export function validateRetreatDate(date: string): ValidationError[] {
+  const errors: ValidationError[] = [];
+  
+  // Check if date is provided
+  if (!date) {
+    errors.push({ field: 'date', message: 'Date is required' });
+    return errors;
+  }
+  
+  // Check if date is in the future
+  const dateObj = new Date(date);
+  const now = new Date();
+  
+  // Reset time to beginning of day for fair comparison
+  now.setHours(0, 0, 0, 0);
+  
+  if (dateObj < now) {
+    errors.push({ field: 'date', message: 'Date must be in the future' });
+  }
+  
+  return errors;
+}

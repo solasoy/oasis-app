@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { AdminLayout } from '@/components/admin/admin-layout';
 import { ApplicationActions } from '@/components/admin/application-actions';
+import { ApplicationRetreatDate } from '@/components/admin/application-retreat-date';
 
 export default async function ApplicationDetail({ params }: { params: { id: string } }) {
   const supabase = createServerComponentClient({ cookies });
@@ -53,7 +54,12 @@ export default async function ApplicationDetail({ params }: { params: { id: stri
             <dl>
               <div className="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
                 <dt className="text-sm font-medium text-gray-500">Retreat Date</dt>
-                <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{application.retreat_date}</dd>
+                <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                  <ApplicationRetreatDate
+                    applicationId={application.id}
+                    currentRetreatDate={application.retreat_date}
+                  />
+                </dd>
               </div>
               
               <div className="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">

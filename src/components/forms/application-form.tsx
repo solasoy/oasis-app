@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { LoadingSpinner } from '@/components/ui/loading';
 import { validateApplicationForm, ValidationError } from '@/lib/validation';
@@ -52,6 +52,14 @@ const applicationSchema = z.object({
 
 type ApplicationFormData = z.infer<typeof applicationSchema>;
 
+interface RetreatDate {
+  id: string;
+  display_name: string;
+  start_date: string;
+  end_date: string;
+  is_active: boolean;
+}
+
 export function ApplicationForm() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState<FormStep>('retreat');
@@ -67,6 +75,50 @@ export function ApplicationForm() {
   const [submissionStatus, setSubmissionStatus] = useState<SubmissionStatus>('idle');
   const [errorMessage, setErrorMessage] = useState('');
   const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
+  const [retreatDates, setRetreatDates] = useState<RetreatDate[]>([]);
+  const [isLoadingDates, setIsLoadingDates] = useState(false);
+
+  // Fetch retreat dates on component mount
+  useEffect(() => {
+    const fetchRetreatDates = async () => {
+      setIsLoadingDates(true);
+      try {
+        const response = await fetch('/api/retreat-dates');
+        const result = await response.json();
+        
+        if (!response.ok) {
+          throw new Error(result.error || 'Failed to fetch retreat dates');
+        }
+        
+        // Filter out inactive dates and sort by start date
+        const activeDates = result.data
+          .filter((date: RetreatDate) => date.is_active)
+          .sort((a: RetreatDate, b: RetreatDate) => 
+            new Date(a.start_date).getTime() - new Date(b.start_date).getTime()
+          );
+        
+        setRetreatDates(activeDates);
+        
+        // Set default value to the next available date if there is one
+        if (activeDates.length > 0) {
+          const now = new Date();
+          const nextDate = activeDates.find((date: RetreatDate) => 
+            new Date(date.start_date) > now
+          );
+          
+          if (nextDate) {
+            form.setValue('retreatDate', nextDate.display_name);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching retreat dates:', error);
+      } finally {
+        setIsLoadingDates(false);
+      }
+    };
+    
+    fetchRetreatDates();
+  }, [form]);
 
   const handleInputChange = (
     field: keyof ApplicationFormData,
@@ -326,12 +378,28 @@ export function ApplicationForm() {
           <div>
             <h2 className="text-lg font-bold text-gray-900">Select Retreat Session</h2>
             <div className="mt-4">
-              <select
-                {...form.register('retreatDate')}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-              >
-                <option value="March 5-9, 2025">March 5-9, 2025</option>
-              </select>
+              {isLoadingDates ? (
+                <div className="flex items-center space-x-2">
+                  <LoadingSpinner />
+                  <span className="text-gray-600">Loading retreat dates...</span>
+                </div>
+              ) : (
+                <select
+                  {...form.register('retreatDate')}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                >
+                  <option value="">Select a retreat date</option>
+                  {retreatDates.length > 0 ? (
+                    retreatDates.map((date) => (
+                      <option key={date.id} value={date.display_name}>
+                        {date.display_name}
+                      </option>
+                    ))
+                  ) : (
+                    <option value="March 5-9, 2025">March 5-9, 2025</option>
+                  )}
+                </select>
+              )}
             </div>
           </div>
         )}
@@ -713,4 +781,4 @@ export function ApplicationForm() {
       </form>
     </div>
   );
-} 
+}

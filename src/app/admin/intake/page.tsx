@@ -24,6 +24,18 @@ export default async function IntakePage() {
   // Debug: Log the applications data to see what we're getting
   console.log('Applications data:', JSON.stringify(applications, null, 2));
   
+  // Check if participants data is being returned correctly
+  if (applications) {
+    applications.forEach((app, index) => {
+      console.log(`Application ${index + 1} (${app.id}):`, {
+        hasParticipants: !!app.participants && (Array.isArray(app.participants) ? app.participants.length > 0 : !!app.participants),
+        participantsType: app.participants ? (Array.isArray(app.participants) ? 'array' : typeof app.participants) : 'undefined',
+        participantsCount: app.participants ? (Array.isArray(app.participants) ? app.participants.length : 1) : 0,
+        participantIds: app.participants ? (Array.isArray(app.participants) ? app.participants.map((p: any) => p.id) : [app.participants.id]) : []
+      });
+    });
+  }
+  
   // Check if the error is due to missing profile_created column
   const isColumnMissingError = error && error.code === '42703' &&
     error.message.includes('profile_created does not exist');
@@ -111,10 +123,15 @@ WHERE table_name = 'applications' AND column_name = 'profile_created';`}</pre>
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            {/* Debug info */}
+                            <div className="text-xs text-gray-500 mb-2">
+                              Profile ID: {app.participants ? (Array.isArray(app.participants) ? (app.participants[0]?.id || 'None') : app.participants.id || 'None') : 'None'}<br/>
+                              Profile Created: {app.participants ? 'Yes' : 'No'}
+                            </div>
                             <ProfileActions
                               applicationId={app.id}
-                              profileId={app.participants && app.participants[0]?.id}
-                              profileCreated={!!app.profile_created}
+                              profileId={app.participants ? (Array.isArray(app.participants) ? app.participants[0]?.id : app.participants.id) : undefined}
+                              profileCreated={!!app.participants}
                             />
                           </td>
                         </tr>

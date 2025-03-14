@@ -20,6 +20,9 @@ export function ProfileActions({ applicationId, profileId, profileCreated }: Pro
   // Log the props to help with debugging
   console.log(`ProfileActions for app ${applicationId}:`, { profileId, profileCreated, profileExists });
   
+  // Add more detailed debugging
+  console.log(`View button will link to: ${profileExists && profileId ? `/admin/participants/${profileId}` : `/admin/applications/${applicationId}`}`);
+  
   const handleDeleteProfile = async () => {
     if (!confirm('Are you sure you want to delete this profile and reset the application status to pending?')) {
       return;
@@ -59,7 +62,7 @@ export function ProfileActions({ applicationId, profileId, profileCreated }: Pro
   return (
     <div className="flex items-center space-x-3">
       <Link
-        href={`/admin/applications/${applicationId}`}
+        href={`/admin/participants/${profileId || applicationId}`}
         className="text-blue-600 hover:text-blue-900 px-2 py-1 rounded border border-blue-600 hover:bg-blue-50"
       >
         View
