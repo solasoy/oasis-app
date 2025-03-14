@@ -13,9 +13,16 @@ flowchart TD
     D --> E
     E --> F[Update Middleware]
     F --> G[Update Admin Layout]
-    G --> H[Implement Create Profile Page]
-    H --> I[Update Landing Page]
-    I --> J[Test Authentication Flow]
+    G --> H[Implement Admin Portal]
+    H --> I[Implement Intake Page]
+    H --> J[Implement Email Page]
+    H --> K[Implement Customizations Page]
+    H --> L[Implement Reports Page]
+    I --> M[Update Landing Page]
+    J --> M
+    K --> M
+    L --> M
+    M --> N[Test Authentication Flow]
 ```
 
 ## Current State
@@ -30,6 +37,7 @@ flowchart TD
 2. **Admins Table**: Used for admin authentication
 3. **Participants Table**: New table for approved applicants with payment information
 4. **Separate Login Pages**: Dedicated login pages for admin and participant users
+5. **Admin Portal**: Central hub for accessing admin-specific functions
 
 ## Implementation Steps
 
@@ -96,8 +104,14 @@ Update the admin layout to:
 - Check if the user is in the admins table
 - Redirect non-admin users to the dashboard
 
-### Step 6: Implement Create Profile Page
-Create a page for admins to create participant profiles for approved applications:
+### Step 6: Implement Admin Portal
+Create a central admin portal page that:
+- Provides navigation to all admin-specific functions
+- Displays a dashboard with key metrics and information
+- Links to the Intake, Email, Customizations, and Reports pages
+
+### Step 7: Implement Intake Page
+Create a page at `/admin/intake` for admins to create participant profiles for approved applications:
 
 ```mermaid
 flowchart TD
@@ -118,7 +132,7 @@ flowchart TD
     M --> N[Send Welcome Emails]
 ```
 
-The create profile form will include:
+The intake form will include:
 - Date (auto-filled with current date)
 - Retreat Date (from application)
 - Husband's information (from application)
@@ -140,21 +154,56 @@ The create profile form will include:
     - Number of payments
     - Amount for each payment
 
-### Step 7: Update Landing Page
+### Step 8: Implement Email Page
+Create a page at `/admin/email` that allows admins to customize and send emails:
+
+- All emails will be sent from a fixed admin address (e.g., oasis@email.com)
+- Allow creation of email templates with boilerplate information that can be modified
+- Each template will have a descriptive title (e.g., "Welcome Email to Couples")
+- Support automated "sends" such as reminder emails on specific days
+- Include the ability to automatically forward emails to one or more other email addresses
+
+### Step 9: Implement Customizations Page
+Create a page at `/admin/customizations` that allows admins to customize documents:
+
+- Support creation of custom documents in Word, PowerPoint, or Excel which can be converted to PDF
+- Allow document uploads with links to these documents provided elsewhere in the app
+- Documents can be accessed from the dashboard, opened, viewed in the app, and downloaded
+- Include a text box describing the document being customized (e.g., Oasis Agreement)
+- Provide document upload functionality
+- Display a list of all customized documents that have been uploaded
+- Support various customizable documents:
+  - Checklist of items to bring to the retreat
+  - Suggested reading/videos/podcasts/activities to prepare couples for the retreat
+  - Overview of the Oasis Garden Experience (6-8 week post-oasis mentorship program)
+
+### Step 10: Implement Reports Page
+Create a page at `/admin/reports` that allows admins to generate reports from the database:
+
+- Support custom SQL queries to view, print, and email specific database content
+- Include pre-built queries for common reports:
+  - Application data for one or more couples from a specific retreat cohort or across cohorts
+  - Intake form data
+  - Food preference information
+  - Checklist status (which checklist items in the dashboard have been completed) for accepted couples
+- Render reports in a table on the page with options to download as CSV/Excel or upload to Google Sheets
+
+### Step 11: Update Landing Page
 Update the landing page to include links to both login pages:
 - Admin Login
 - Participant Login
 
-### Step 8: Remove Existing Login Page
+### Step 12: Remove Existing Login Page
 Remove the existing login page at `/login` and update any references to it.
 
 ## Implementation Strategy
 
 1. **Database Changes First**: Create the 'participants' table in Supabase
 2. **Authentication Flow Next**: Implement the login pages and update the middleware
-3. **UI Components Last**: Create the profile creation page and update the landing page
+3. **Admin Portal Development**: Create the admin portal and its associated pages
+4. **UI Components Last**: Update the landing page and remove the existing login page
 
-This approach ensures that the core authentication infrastructure is in place before updating the UI components.
+This approach ensures that the core authentication infrastructure is in place before developing the admin portal and its features.
 
 ## Testing Plan
 
@@ -175,8 +224,14 @@ This approach ensures that the core authentication infrastructure is in place be
    - Test accessing participant routes as an admin (should succeed)
    - Test accessing protected routes without authentication (should redirect to login)
 
-4. **UI Testing**:
+4. **Admin Portal Testing**:
+   - Verify the admin portal displays correctly with all navigation links
+   - Test the intake page functionality with various payment scenarios
+   - Test email template creation and sending
+   - Test document customization and upload/download
+   - Test report generation and export options
+
+5. **UI Testing**:
    - Verify the admin login page displays correctly
    - Verify the participant login page displays correctly
-   - Test the create profile functionality with various payment scenarios
    - Verify the landing page links work correctly
