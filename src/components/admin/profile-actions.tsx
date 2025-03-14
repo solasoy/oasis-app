@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import SendWelcomeEmailButton from './send-welcome-email-button';
 
 interface ProfileActionsProps {
   applicationId: string;
@@ -83,6 +84,10 @@ export function ProfileActions({ applicationId, profileId, profileCreated }: Pro
           >
             {isDeleting ? 'Deleting...' : 'Delete'}
           </button>
+          <SendWelcomeEmailButton
+            participantId={profileId || ''}
+            welcomeEmailSent={false}
+          />
           <span className="text-green-600 font-medium px-2 py-1 rounded bg-green-50 border border-green-200">
             Profile Created
           </span>

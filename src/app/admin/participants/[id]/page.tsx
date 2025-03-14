@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { AdminLayout } from '@/components/admin/admin-layout';
+import SendWelcomeEmailButton from '@/components/admin/send-welcome-email-button';
 
 export default async function ParticipantProfilePage({ params }: { params: { id: string } }) {
   const supabase = createServerComponentClient({ cookies });
@@ -25,6 +26,8 @@ export default async function ParticipantProfilePage({ params }: { params: { id:
     number_of_payments?: number;
     variable_payments?: any[];
     created_at: string;
+    welcome_email_sent?: boolean;
+    welcome_email_sent_at?: string;
     applications?: any;
   }
 
@@ -253,7 +256,7 @@ export default async function ParticipantProfilePage({ params }: { params: { id:
                 <div className="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
                   <dt className="text-sm font-medium text-gray-500">Actions</dt>
                   <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                    <div className="flex space-x-3">
+                    <div className="flex flex-wrap gap-3">
                       <Link
                         href={`/admin/create-profile?application=${safeParticipant.application_id}&edit=true`}
                         className="text-blue-600 hover:text-blue-900 px-2 py-1 rounded border border-blue-600 hover:bg-blue-50"
@@ -266,7 +269,17 @@ export default async function ParticipantProfilePage({ params }: { params: { id:
                       >
                         View Application
                       </Link>
+                      <SendWelcomeEmailButton
+                        participantId={safeParticipant.id}
+                        welcomeEmailSent={safeParticipant.welcome_email_sent}
+                      />
                     </div>
+                    
+                    {safeParticipant.welcome_email_sent && safeParticipant.welcome_email_sent_at && (
+                      <div className="mt-2 text-sm text-gray-500">
+                        Welcome email sent on {new Date(safeParticipant.welcome_email_sent_at).toLocaleString()}
+                      </div>
+                    )}
                   </dd>
                 </div>
               </dl>
