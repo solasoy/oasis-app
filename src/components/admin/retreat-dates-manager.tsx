@@ -27,6 +27,15 @@ export function RetreatDatesManager({ initialDates }: RetreatDatesManagerProps) 
     display_name: ''
   });
   
+  // Helper function to format dates correctly in local timezone
+  const formatLocalDate = (dateString: string) => {
+    // Parse the date string (format: YYYY-MM-DD)
+    const [year, month, day] = dateString.split('-').map(Number);
+    
+    // Create a date using local date parts (month is 0-indexed in JS)
+    return new Date(year, month - 1, day).toLocaleDateString();
+  };
+  
   // Add state for dialog
   const [dialogState, setDialogState] = useState({
     isOpen: false,
@@ -271,10 +280,10 @@ export function RetreatDatesManager({ initialDates }: RetreatDatesManagerProps) 
                     {date.display_name}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {new Date(date.start_date).toLocaleDateString()}
+                    {formatLocalDate(date.start_date)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {new Date(date.end_date).toLocaleDateString()}
+                    {formatLocalDate(date.end_date)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
