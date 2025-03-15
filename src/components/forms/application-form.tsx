@@ -161,11 +161,11 @@ export function ApplicationForm() {
         );
       case 'background':
         return (
-          !!form.getValues('isOCCMember') && 
+          !!form.getValues('isOCCMember') &&
           !!form.getValues('isChristFollower') &&
-          !!form.getValues('weddingDate') && 
+          !!form.getValues('weddingDate') &&
           !!form.getValues('livingArrangement') &&
-          !!form.getValues('retreatReason') && 
+          !!form.getValues('retreatReason') &&
           !!form.getValues('previousTherapy') &&
           !!form.getValues('children_details') &&
           !!form.getValues('previous_marriage_details')
@@ -177,6 +177,7 @@ export function ApplicationForm() {
 
   const onSubmit = async (data: ApplicationFormData) => {
     console.log('Form submission started', data);
+    console.log('*** ACTUAL FORM SUBMISSION HAPPENING - THIS SHOULD ONLY OCCUR FROM REVIEW STEP ***');
     try {
       setSubmissionStatus('submitting');
 
@@ -256,6 +257,14 @@ export function ApplicationForm() {
       const nextStep = steps[currentIndex + 1];
       console.log('Moving to step:', nextStep);
       setCurrentStep(nextStep);
+      
+      // Log after state update to confirm
+      console.log('Step updated, current step is now:', nextStep);
+      
+      // If moving to review step, log it specifically
+      if (nextStep === 'review') {
+        console.log('*** Moving to REVIEW step ***');
+      }
     }
   };
 
@@ -310,22 +319,21 @@ export function ApplicationForm() {
       {renderSubmissionStatus()}
       {renderValidationErrors()}
       
-      <form 
-        className="space-y-8" 
+      <form
+        className="space-y-8"
         onSubmit={async (e) => {
           e.preventDefault();
           console.log('Form submitted, current step:', currentStep);
           
-          // If not on review step, just go to next step
-          if (currentStep !== 'review') {
-            console.log('Not on review step, moving to next step');
-            handleNext();
-            return; // Important: Stop here and don't submit
+          // Only proceed with submission if we're on the review step
+          if (currentStep === 'review') {
+            console.log('On review step, submitting form');
+            await onSubmit(form.getValues());
+          } else {
+            // Otherwise just prevent default and don't submit
+            console.log('Not on review step, preventing submission');
+            console.log('Current step is:', currentStep);
           }
-          
-          // Only submit if we're on review step
-          console.log('On review step, submitting form');
-          await onSubmit(form.getValues());
         }}
       >
         {/* Move Navigation Buttons inside the form */}
@@ -345,7 +353,10 @@ export function ApplicationForm() {
           </button>
           <button
             type={currentStep === 'review' ? 'submit' : 'button'}
-            onClick={currentStep !== 'review' ? handleNext : undefined}
+            onClick={currentStep !== 'review' ? (e) => {
+              e.preventDefault();
+              handleNext();
+            } : undefined}
             className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md"
           >
             {currentStep === 'review' ? 'Submit' : 'Next'}
