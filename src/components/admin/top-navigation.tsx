@@ -14,8 +14,8 @@ export function AdminTopNavigation() {
 
   const navigation = [
     { name: 'Dashboard', href: '/admin' },
-    { name: 'Applications', href: '/admin/applications' },
     { name: 'Retreat Dates', href: '/admin/retreat-dates' },
+    { name: 'Applications', href: '/admin/applications' },
     { name: 'Intake', href: '/admin/intake' },
     { name: 'Email', href: '/admin/email' },
     { name: 'Customizations', href: '/admin/customizations' },
