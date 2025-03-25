@@ -29,7 +29,7 @@ export async function POST(request: Request) {
       // 1. If profileId is provided, delete the profile
       if (profileId) {
         // First, get the user IDs associated with this profile
-        const { data: authData, error: authError } = await supabase.auth.admin.listUsers();
+        const { data: authData, error: authError } = await adminSupabase.auth.admin.listUsers();
         
         if (authError) {
           throw new Error(`Error fetching users: ${authError.message}`);
@@ -42,7 +42,7 @@ export async function POST(request: Request) {
         
         // Delete each user account
         for (const user of profileUsers) {
-          const { error: deleteUserError } = await supabase.auth.admin.deleteUser(user.id);
+          const { error: deleteUserError } = await adminSupabase.auth.admin.deleteUser(user.id);
           if (deleteUserError) {
             throw new Error(`Error deleting user ${user.id}: ${deleteUserError.message}`);
           }

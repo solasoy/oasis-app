@@ -42,17 +42,37 @@ export function ParticipantLoginForm() {
         .eq('wife_email', email)
         .maybeSingle();
         
+      const participantData = husbandData || wifeData;
+        
       // If neither query returned data, the user is not a participant
-      if (!husbandData && !wifeData) {
+      if (!participantData) {
         // Sign out if not a participant
         await supabase.auth.signOut();
         throw new Error('You do not have participant access');
       }
 
-      // The check for participant access is already handled above
+      // Check if access has expired
+      if (participantData.access_expires_at) {
+        const expirationDate = new Date(participantData.access_expires_at);
+        const today = new Date();
+        
+        // Set both dates to midnight for accurate comparison
+        expirationDate.setHours(23, 59, 59, 999);
+        today.setHours(0, 0, 0, 0);
+        
+        if (today > expirationDate) {
+          // Sign out if access has expired
+          await supabase.auth.signOut();
+          router.push('/access-expired');
+          return;
+        }
+      }
 
       // Refresh the page to trigger the middleware
       router.refresh();
+      
+      // Redirect to participant dashboard
+      router.push('/participant');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
@@ -104,6 +124,26 @@ export function ParticipantLoginForm() {
             className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
             placeholder="Password"
           />
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between mt-4 mb-6">
+        <div className="flex items-center">
+          <input
+            id="remember-me"
+            name="remember-me"
+            type="checkbox"
+            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+          />
+          <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">
+            Remember me
+          </label>
+        </div>
+
+        <div className="text-sm">
+          <a href="/participant/reset-password-request" className="font-medium text-blue-600 hover:text-blue-500">
+            Forgot your password?
+          </a>
         </div>
       </div>
 

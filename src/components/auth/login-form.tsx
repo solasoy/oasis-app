@@ -18,7 +18,7 @@ export function LoginForm() {
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
@@ -27,10 +27,22 @@ export function LoginForm() {
         throw error;
       }
 
-      // Refresh the page to trigger the middleware
-      router.refresh();
+      // Log session details for debugging
+      console.log('Login Session:', data.session);
+
+      // Ensure session is properly set
+      if (data.session) {
+        // Explicitly refresh to trigger middleware
+        router.refresh();
+        
+        // Redirect to admin dashboard or appropriate route
+        router.push('/admin/applications');
+      } else {
+        throw new Error('No session created');
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      console.error('Login Error:', err);
+      setError(err instanceof Error ? err.message : 'An unexpected error occurred during login');
     } finally {
       setLoading(false);
     }

@@ -1,25 +1,48 @@
-import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs';
 
 export async function middleware(request: NextRequest) {
-  // Development bypass
-  if (process.env.NODE_ENV === 'development') {
-    return NextResponse.next();
-  }
-
+  // Create a response object and Supabase client
   const res = NextResponse.next();
   const supabase = createMiddlewareClient({ req: request, res });
+
+  // DEVELOPMENT MODE: Add mock authentication for admin routes and their API calls
+  if (process.env.NODE_ENV === 'development') {
+    // Check if this is an admin route or an admin API route
+    const isAdminRoute = request.nextUrl.pathname.startsWith('/admin');
+    const isAdminApiRoute = request.nextUrl.pathname.startsWith('/api/admin');
+    
+    if (isAdminRoute || isAdminApiRoute) {
+      console.log(`🔐 DEV AUTH: Authentication bypass for route: ${request.nextUrl.pathname}`);
+      
+      // For API routes in development, we need to ensure cookies are properly set
+      // This helps prevent AuthSessionMissingError
+      if (isAdminApiRoute) {
+        console.log('Setting development mode auth cookies for API route');
+        
+        // We still need to get the session to ensure cookies are properly set
+        await supabase.auth.getSession();
+      }
+      
+      return res;
+    }
+  }
+
+  // Skip further middleware processing for non-admin API routes
+  if (request.nextUrl.pathname.startsWith('/api/') && !request.nextUrl.pathname.startsWith('/api/admin')) {
+    return NextResponse.next();
+  }
 
   const {
     data: { session },
   } = await supabase.auth.getSession();
 
   // Protected routes
-  const protectedPaths = ['/admin', '/dashboard'];
+  const protectedPaths = ['/admin', '/participant'];
   
   // Login pages should be excluded from protection
-  const loginPaths = ['/admin/login', '/dashboard/login'];
+  const loginPaths = ['/admin/login', '/participant/login'];
   const isLoginPath = loginPaths.some((path) =>
     request.nextUrl.pathname === path
   );
@@ -35,11 +58,9 @@ export async function middleware(request: NextRequest) {
     if (!session) {
       // Redirect to the appropriate login page based on the route
       if (isAdminPath) {
-        // Redirect to admin login if trying to access admin routes
         return NextResponse.redirect(new URL('/admin/login', request.url));
       } else {
-        // Redirect to participant login if trying to access dashboard routes
-        return NextResponse.redirect(new URL('/dashboard/login', request.url));
+        return NextResponse.redirect(new URL('/participant/login', request.url));
       }
     }
 
@@ -57,8 +78,8 @@ export async function middleware(request: NextRequest) {
         .single();
 
       if (!adminData) {
-        // Redirect non-admin users to dashboard
-        return NextResponse.redirect(new URL('/dashboard', request.url));
+        // Redirect non-admin users to participant dashboard
+        return NextResponse.redirect(new URL('/participant', request.url));
       }
     } else {
       // For dashboard routes, check if user is an admin first (admins can access participant routes)
@@ -82,9 +103,27 @@ export async function middleware(request: NextRequest) {
           .eq('wife_email', user?.email)
           .maybeSingle();
           
+        const participantData = husbandData || wifeData;
+        
         // If neither an admin nor a participant, redirect to login
-        if (!husbandData && !wifeData) {
-          return NextResponse.redirect(new URL('/dashboard/login', request.url));
+        if (!participantData) {
+          return NextResponse.redirect(new URL('/participant/login', request.url));
+        }
+        
+        // Check if access has expired
+        if (participantData.access_expires_at) {
+          const expirationDate = new Date(participantData.access_expires_at);
+          const today = new Date();
+          
+          // Set both dates to midnight for accurate comparison
+          expirationDate.setHours(23, 59, 59, 999);
+          today.setHours(0, 0, 0, 0);
+          
+          if (today > expirationDate) {
+            // Sign out the user if access has expired
+            await supabase.auth.signOut();
+            return NextResponse.redirect(new URL('/access-expired', request.url));
+          }
         }
       }
     }
@@ -96,6 +135,7 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     '/admin/:path*',
-    '/dashboard/:path*',
+    '/participant/:path*',
+    '/api/admin/:path*',
   ],
 };

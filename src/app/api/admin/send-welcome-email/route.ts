@@ -1,192 +1,326 @@
 import { NextResponse } from 'next/server';
-import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
-import { cookies } from 'next/headers';
+import { createClient } from '@supabase/supabase-js';
 import { Resend } from 'resend';
-import { getWelcomeEmailTemplate } from '@/lib/email-templates';
+import fs from 'fs';
+import path from 'path';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Enhanced logging function
+function debugLog(message: string, data?: any) {
+  const timestamp = new Date().toISOString();
+  const logMessage = `[${timestamp}] ${message}`;
+  
+  console.log(logMessage, data || '');
 
-export async function POST(request: Request) {
+  // Additional file logging
   try {
-    // Check if environment variables are set
-    if (!process.env.RESEND_API_KEY) {
-      return NextResponse.json({
-        error: 'Server configuration error',
-        details: {
-          hasResendKey: !!process.env.RESEND_API_KEY,
-        }
-      }, { status: 500 });
+    const logDir = path.join(process.cwd(), 'debug-logs');
+    if (!fs.existsSync(logDir)) {
+      fs.mkdirSync(logDir, { recursive: true });
     }
 
-    // Parse request body to get participant ID
-    const { participantId } = await request.json();
+    const logFilePath = path.join(logDir, `debug-${new Date().toISOString().split('T')[0]}.log`);
     
-    if (!participantId) {
-      return NextResponse.json({ 
-        error: 'Missing participant ID' 
-      }, { status: 400 });
+    fs.appendFileSync(logFilePath, `${logMessage}\n${JSON.stringify(data, null, 2)}\n\n`);
+  } catch (error) {
+    console.error('Failed to write debug log', error);
+  }
+}
+
+// Validate Resend configuration
+function validateResendConfig() {
+  const apiKey = process.env.RESEND_API_KEY;
+  const isDevelopment = process.env.NODE_ENV === 'development';
+  
+  // Use Resend's development email in dev mode
+  const fromEmail = isDevelopment 
+    ? 'onboarding@resend.dev' 
+    : (process.env.RESEND_FROM_EMAIL || 'noreply@oasisretreat.org');
+
+  const ownerEmail = process.env.RESEND_OWNER_EMAIL || 'solasoy2000@gmail.com';
+
+  debugLog('Resend Configuration Verification', {
+    apiKeyPresent: !!apiKey,
+    apiKeyLength: apiKey?.length,
+    fromEmail,
+    ownerEmail,
+    isDevelopment
+  });
+
+  if (!apiKey) {
+    throw new Error('RESEND_API_KEY is not set');
+  }
+
+  return {
+    apiKey,
+    fromEmail,
+    ownerEmail,
+    isDevelopment
+  };
+}
+
+// Configure Resend with error handling
+function createResendClient() {
+  try {
+    const { apiKey } = validateResendConfig();
+    return new Resend(apiKey);
+  } catch (error) {
+    debugLog('Resend Client Creation Failed', {
+      errorMessage: error instanceof Error ? error.message : String(error)
+    });
+    throw error;
+  }
+}
+
+// Create Resend client
+const resend = createResendClient();
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!, 
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
+
+// Parse retreat date to get the first day with correct year
+function parseRetreatStartDate(retreatDateString: string): string {
+  try {
+    // Extract year from the original date string
+    const yearMatch = retreatDateString.match(/\d{4}/);
+    const year = yearMatch ? yearMatch[0] : new Date().getFullYear();
+
+    // Regex to extract month and day
+    const dateRegex = /(\w+ \d{1,2})/;
+    const match = retreatDateString.match(dateRegex);
+
+    if (match) {
+      // Construct a date with the extracted year
+      const parsedDate = new Date(`${match[0]}, ${year}`);
+      
+      debugLog('Retreat Date Parsing', {
+        originalDateString: retreatDateString,
+        extractedYear: year,
+        parsedDate: parsedDate.toISOString()
+      });
+
+      return parsedDate.toLocaleDateString('en-US', { 
+        weekday: 'long', 
+        month: 'long', 
+        day: 'numeric', 
+        year: 'numeric' 
+      });
     }
 
-    // Create Supabase client
-    const supabase = createServerComponentClient({ cookies });
-    
-    // Fetch participant data with related application
-    const { data: participant, error: participantError } = await supabase
+    // Fallback to original string if parsing fails
+    return retreatDateString;
+  } catch (error) {
+    debugLog('Retreat Date Parsing Error', { 
+      retreatDateString, 
+      error: error instanceof Error ? error.message : String(error) 
+    });
+    return retreatDateString;
+  }
+}
+
+export async function POST(req: Request) {
+  try {
+    const body = await req.json();
+    const { 
+      participantId, 
+      role = 'both',
+    } = body;
+
+    debugLog('Welcome Email Request Received', { 
+      participantId, 
+      role 
+    });
+
+    // Fetch participant details with associated application
+    const { data: participant, error: fetchError } = await supabase
       .from('participants')
-      .select(`
-        *,
-        applications(*)
-      `)
+      .select('*, applications(*)')
       .eq('id', participantId)
       .single();
-    
-    if (participantError || !participant) {
-      console.error('Error fetching participant:', participantError);
+
+    if (fetchError || !participant) {
+      debugLog('Participant Fetch Failed', { 
+        participantId, 
+        error: fetchError 
+      });
       return NextResponse.json({ 
-        error: 'Failed to fetch participant data',
-        details: participantError?.message
+        error: 'Participant not found',
+        details: { participantId, fetchError }
       }, { status: 404 });
     }
 
-    // Log participant data (for debugging)
-    console.log('Sending welcome email to participant:', {
-      id: participant.id,
-      husband: `${participant.husband_first_name} ${participant.husband_last_name}`,
-      wife: `${participant.wife_first_name} ${participant.wife_last_name}`,
-      retreat_date: participant.retreat_date,
-      application_retreat_date: participant.applications && participant.applications[0] ? participant.applications[0].retreat_date : 'No application retreat date',
-      applications_array: Array.isArray(participant.applications),
-      applications_length: participant.applications ? participant.applications.length : 0,
-      first_application: participant.applications && participant.applications[0] ? JSON.stringify(participant.applications[0]) : 'No applications'
-    });
+    // Get retreat date from associated application
+    const retreatDate = participant.applications?.retreat_date || 'Retreat Date Not Found';
+    const formattedRetreatDate = parseRetreatStartDate(retreatDate);
 
-    // Fetch the application data directly
-    const { data: application, error: applicationError } = await supabase
-      .from('applications')
-      .select('*')
-      .eq('id', participant.application_id)
-      .single();
-    
-    if (applicationError) {
-      console.error('Error fetching application:', applicationError);
-    }
-    
-    // Log the application data for debugging
-    console.log('Application data:', {
-      application_id: participant.application_id,
-      application_found: !!application,
-      application_retreat_date: application?.retreat_date,
-      participant_retreat_date: participant.retreat_date
-    });
-    
-    // IMPORTANT: In the participant record, the "retreat_date" field is actually storing
-    // the profile creation date, not the actual retreat date. The actual retreat date is
-    // stored in the application record.
-    
-    // Create a modified participant object for the email template
-    const emailParticipant = {
-      ...participant,
-      // Override the retreat_date with the application's retreat_date if available
-      retreat_date: application?.retreat_date || participant.retreat_date,
-      // Add a field to store the actual meaning of participant.retreat_date
-      profile_creation_date: participant.retreat_date
-    };
-    
-    // Log the modified participant data for debugging
-    console.log('Modified participant data for email:', {
-      profile_creation_date: participant.retreat_date, // This is actually the profile creation date
-      application_retreat_date: application?.retreat_date, // This is the actual retreat date
-      email_retreat_date: emailParticipant.retreat_date
-    });
-    
-    // Generate email HTML using the welcome email template with the modified participant data
-    const emailHtml = getWelcomeEmailTemplate(emailParticipant);
-    
-    // Send emails to both husband and wife
-    const emailErrors = [];
-    
-    try {
-      // Log email addresses before sending
-      console.log('Sending welcome emails to:', {
-        husband: participant.husband_email,
-        wife: participant.wife_email
+    // Get Resend configuration
+    const { fromEmail, ownerEmail, isDevelopment } = validateResendConfig();
+
+    const emails = [];
+    const sendEmailPromises = [];
+
+    // Send email based on role
+    const sendEmail = async (firstName: string, email: string, password: string, role: 'husband' | 'wife') => {
+      if (!email || !password) {
+        debugLog(`Skipping ${role} email - missing email or password`, { email, passwordExists: !!password });
+        return null;
+      }
+
+      const recipientEmail = isDevelopment ? ownerEmail : email;
+
+      const emailMessage = {
+        from: fromEmail,
+        to: [recipientEmail],
+        subject: 'Welcome to Oasis Retreat!',
+        text: `Welcome to Oasis Retreat!
+
+Dear ${firstName},
+
+We're thrilled that you'll be joining us for the Oasis Retreat on ${formattedRetreatDate}. Your application has been approved, and we're excited to begin this journey with you.
+
+Your Login Credentials
+
+Password: ${password}
+
+Note: You can reset your passwords from the login page. Your access will expire on ${formattedRetreatDate}.
+
+Please log in to your participant dashboard at /participant/login to complete your retreat preparation steps.
+
+If you have any questions, please don't hesitate to contact us.
+
+Warm regards,
+The Oasis Retreat Team${
+          isDevelopment ? `\n\nOriginal Recipient: ${email}` : ''
+        }`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <h1 style="color: #333;">Welcome to Oasis Retreat!</h1>
+            
+            <p>Dear ${firstName},</p>
+            
+            <p>We're thrilled that you'll be joining us for the Oasis Retreat on <strong>${formattedRetreatDate}</strong>. Your application has been approved, and we're excited to begin this journey with you.</p>
+            
+            <div style="background-color: #f4f4f4; padding: 15px; border-radius: 5px; margin: 20px 0;">
+              <h2 style="margin-top: 0; color: #333;">Your Login Credentials</h2>
+              <p>Password: <strong>${password}</strong></p>
+            </div>
+            
+            <p><em>Note: You can reset your passwords from the login page. Your access will expire on ${formattedRetreatDate}.</em></p>
+            
+            <p>Please log in to your participant dashboard at <a href="/participant/login">/participant/login</a> to complete your retreat preparation steps.</p>
+            
+            <p>If you have any questions, please don't hesitate to contact us.</p>
+            
+            <p>Warm regards,<br>The Oasis Retreat Team</p>
+            
+            ${isDevelopment ? `<p style="color: #888; font-size: 0.8em;">Original Recipient: ${email}</p>` : ''}
+          </div>
+        `
+      };
+
+      debugLog(`Preparing ${role} email`, {
+        originalRecipient: email,
+        finalRecipient: recipientEmail,
+        retreatDate: formattedRetreatDate,
+        isDevelopment,
+        fromEmail
       });
-      
-      // Send to both husband and wife
-      const emailResults = await Promise.all([
-        // Husband email
-        resend.emails.send({
-          from: 'Oasis Retreat <onboarding@resend.dev>',
-          to: [participant.husband_email],
-          subject: 'Welcome to the Oasis Marriage Retreat',
-          html: emailHtml
-        }).catch(e => {
-          console.error('Error sending husband email:', e);
-          return null;
-        }),
+
+      try {
+        const response = await resend.emails.send(emailMessage);
         
-        // Wife email
-        resend.emails.send({
-          from: 'Oasis Retreat <onboarding@resend.dev>',
-          to: [participant.wife_email],
-          subject: 'Welcome to the Oasis Marriage Retreat',
-          html: emailHtml
-        }).catch(e => {
-          console.error('Error sending wife email:', e);
-          return null;
-        })
-      ]);
-      
-      // Log results
-      console.log('Email sending results:', emailResults);
-      
-      // Check for any failed emails
-      emailResults.forEach((result, index) => {
-        if (!result) {
-          const recipient = index === 0 ? 'husband' : 'wife';
-          emailErrors.push(`Failed to send email to ${recipient}`);
-        }
-      });
-      
-    } catch (emailError) {
-      console.error('Email error:', emailError);
-      emailErrors.push(emailError instanceof Error ? emailError.message : 'Email error');
-    }
+        debugLog(`${role.toUpperCase()} Email Sent`, {
+          response,
+          originalRecipient: email,
+          finalRecipient: recipientEmail
+        });
 
-    // If any emails were sent successfully, update the participant record
-    if (emailErrors.length < 2) {
-      // Update participant record to mark welcome email as sent
-      const { error: updateError } = await supabase
-        .from('participants')
-        .update({
-          welcome_email_sent: true,
-          welcome_email_sent_at: new Date().toISOString()
-        })
-        .eq('id', participantId);
+        return response;
+      } catch (error) {
+        debugLog(`Failed to send ${role} email`, {
+          error: error instanceof Error ? error.message : String(error),
+          originalRecipient: email,
+          finalRecipient: recipientEmail,
+          fullError: error
+        });
+        throw error;
+      }
+    };
+
+    // Send emails based on role
+    if (role === 'husband' || role === 'both') {
+      const husbandEmailPromise = sendEmail(
+        participant.husband_first_name, 
+        participant.husband_email, 
+        participant.husband_temp_password, 
+        'husband'
+      );
       
-      if (updateError) {
-        console.error('Error updating participant record:', updateError);
-        emailErrors.push(`Failed to update participant record: ${updateError.message}`);
+      if (husbandEmailPromise) {
+        sendEmailPromises.push(husbandEmailPromise);
+        emails.push(isDevelopment ? ownerEmail : participant.husband_email);
       }
     }
-    
-    // Return success response with email status
-    return NextResponse.json({
-      success: true,
-      participantId: participant.id,
-      emailStatus: emailErrors.length === 0 ? 'success' : 'partial',
-      emailErrors: emailErrors.length > 0 ? emailErrors : undefined
-    }, {
-      status: 200
+
+    if (role === 'wife' || role === 'both') {
+      const wifeEmailPromise = sendEmail(
+        participant.wife_first_name, 
+        participant.wife_email, 
+        participant.wife_temp_password, 
+        'wife'
+      );
+      
+      if (wifeEmailPromise) {
+        sendEmailPromises.push(wifeEmailPromise);
+        emails.push(isDevelopment ? ownerEmail : participant.wife_email);
+      }
+    }
+
+    // Wait for all emails to be sent
+    const emailResults = await Promise.allSettled(sendEmailPromises);
+
+    const successfulEmails = emailResults.filter(result => result.status === 'fulfilled');
+    const failedEmails = emailResults.filter(result => result.status === 'rejected');
+
+    debugLog('Email Sending Summary', {
+      totalAttempts: emailResults.length,
+      successfulEmails: successfulEmails.length,
+      failedEmails: failedEmails.length,
+      emails
     });
-    
-  } catch (error) {
-    console.error('Welcome email error:', error);
+
+    // Update participant record
+    const { error: updateError } = await supabase
+      .from('participants')
+      .update({
+        welcome_email_sent: successfulEmails.length > 0,
+        welcome_email_sent_at: new Date().toISOString()
+      })
+      .eq('id', participantId);
+
+    if (updateError) {
+      debugLog('Failed to update welcome email status', updateError);
+    }
+
     return NextResponse.json({ 
-      error: 'Failed to send welcome email',
-      details: error instanceof Error ? error.message : 'Unknown error'
-    }, { 
-      status: 500 
+      success: true, 
+      emailsSent: successfulEmails.length,
+      emails,
+      failures: failedEmails.length,
+      isDevelopment,
+      fromEmail,
+      ownerEmail
     });
+
+  } catch (error) {
+    debugLog('Catastrophic Email Sending Failure', {
+      error: error instanceof Error ? error.message : String(error)
+    });
+
+    return NextResponse.json({ 
+      error: 'Failed to send welcome emails',
+      details: String(error)
+    }, { status: 500 });
   }
 }

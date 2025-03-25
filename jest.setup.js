@@ -1,9 +1,9 @@
-// Mock environment variables
-process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://test.supabase.co';
-process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'test-key';
-process.env.RESEND_API_KEY = 'test-resend-key';
-process.env.ADMIN_EMAIL = 'admin@test.com';
+// Load environment variables for testing
+require('dotenv').config({ path: '.env.test' });
 
-// Suppress console.error and console.warn in tests
-global.console.error = jest.fn();
-global.console.warn = jest.fn(); 
+// Log environment variables for debugging
+console.log('Environment Variables in jest.setup.js:');
+console.log('NEXT_PUBLIC_SUPABASE_URL:', process.env.NEXT_PUBLIC_SUPABASE_URL);
+console.log('SUPABASE_SERVICE_ROLE_KEY:', process.env.SUPABASE_SERVICE_ROLE_KEY ? 'Present' : 'Missing');
+console.log('TEST_ADMIN_EMAIL:', process.env.TEST_ADMIN_EMAIL);
+console.log('TEST_ADMIN_PASSWORD:', process.env.TEST_ADMIN_PASSWORD ? 'Present' : 'Missing');

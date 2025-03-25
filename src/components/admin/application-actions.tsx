@@ -11,9 +11,12 @@ interface ApplicationActionsProps {
   profileCreated?: boolean;
 }
 
-export function ApplicationActions({ applicationId, status, profileCreated = false }: ApplicationActionsProps) {
+export function ApplicationActions({ 
+  applicationId, 
+  status, 
+  profileCreated = false 
+}: ApplicationActionsProps) {
   const router = useRouter();
-  const supabase = createClientComponentClient();
   const [isUpdating, setIsUpdating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -31,10 +34,22 @@ export function ApplicationActions({ applicationId, status, profileCreated = fal
         body: JSON.stringify({
           applicationId,
           status: newStatus,
+          profileCreated,
         }),
       });
 
-      const data = await response.json();
+      // Log the raw response for debugging
+      const responseText = await response.text();
+      console.log('Raw response:', responseText);
+
+      // Try to parse the response
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error('JSON parsing error:', parseError);
+        throw new Error(`Failed to parse response: ${responseText}`);
+      }
 
       if (!response.ok) {
         throw new Error(data.error || 'Failed to update application status');

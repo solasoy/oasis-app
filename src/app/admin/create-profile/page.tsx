@@ -57,6 +57,17 @@ export default function CreateProfilePage() {
       setError('No application ID provided');
     }
   }, [applicationId]);
+
+  // Add a debug log to help troubleshoot
+  useEffect(() => {
+    console.log('Create Profile Page - Edit Mode:', {
+      isEditMode: searchParams.get('edit') === 'true',
+      applicationId,
+      hasApplication: !!application,
+      hasParticipants: application?.participants ? true : false,
+      participantsType: application?.participants ? (Array.isArray(application.participants) ? 'array' : typeof application.participants) : 'none'
+    });
+  }, [searchParams, applicationId, application]);
   
   const fetchApplication = async (id: string) => {
     setLoading(true);
@@ -78,56 +89,87 @@ export default function CreateProfilePage() {
       if (data) {
         setApplication(data);
         
-        // Check if profile has already been created for this application
-        if (data.profile_created) {
-          const isEditMode = searchParams.get('edit') === 'true';
-          
-          if (isEditMode && data.participants && data.participants.length > 0) {
-            // Load existing profile data for editing
-            const profile = data.participants[0];
+        // Check if we're in edit mode
+        const isEditMode = searchParams.get('edit') === 'true';
+        
+        // Check if there are participants (profile exists)
+        const hasParticipants = data.participants &&
+          (Array.isArray(data.participants) ? data.participants.length > 0 : true);
+        
+        console.log('Application data loaded:', {
+          isEditMode,
+          hasParticipants,
+          profileCreated: data.profile_created
+        });
+        
+        // If we're in edit mode and there are participants, load the profile data
+        if (isEditMode && hasParticipants) {
+          // Load existing profile data for editing
+          // Handle both cases: when participants is an array and when it's an object
+          const profile = Array.isArray(data.participants)
+            ? (data.participants.length > 0 ? data.participants[0] : null)
+            : data.participants;
             
-            // Parse the retreat date correctly
-            let retreatDate = profile.retreat_date || '';
-            
-            setFormData({
-              ...formData,
-              retreatDate: retreatDate,
-              husbandFirstName: profile.husband_first_name || '',
-              husbandLastName: profile.husband_last_name || '',
-              husbandEmail: profile.husband_email || '',
-              wifeFirstName: profile.wife_first_name || '',
-              wifeLastName: profile.wife_last_name || '',
-              wifeEmail: profile.wife_email || '',
-              feeAmount: profile.fee_amount?.toString() || '3500.00',
-              hasPaymentPlan: profile.has_payment_plan ? 'yes' : 'no',
-              paymentPlanType: profile.payment_plan_type || 'fixed',
-              paymentCadence: profile.payment_cadence || 'monthly',
-              numberOfPayments: profile.number_of_payments || 3,
-              variablePayments: profile.variable_payments || [{ amount: '', dueDate: '' }]
-            });
-          } else {
-            setError('A profile has already been created for this application. Use the edit option to modify it.');
-            // We need to update the application state to reflect that a profile has been created
-            data.profile_created = true;
-            setSubmitting(true); // Disable form submission
+          if (!profile) {
+            console.error('No profile found for editing');
+            setError('No profile found for editing');
+            return;
           }
+          
+          console.log('Loading existing profile data for editing:', profile);
+          
+          // Parse the retreat date correctly
+          let retreatDate = profile.retreat_date || '';
+          
+          // Create a deep copy of the form data to avoid reference issues
+          const newFormData = {
+            retreatDate: retreatDate,
+            husbandFirstName: profile.husband_first_name || '',
+            husbandLastName: profile.husband_last_name || '',
+            husbandEmail: profile.husband_email || '',
+            wifeFirstName: profile.wife_first_name || '',
+            wifeLastName: profile.wife_last_name || '',
+            wifeEmail: profile.wife_email || '',
+            feeAmount: profile.fee_amount?.toString() || '3500.00',
+            hasPaymentPlan: profile.has_payment_plan ? 'yes' : 'no',
+            paymentPlanType: profile.payment_plan_type || 'fixed',
+            paymentCadence: profile.payment_cadence || 'monthly',
+            numberOfPayments: profile.number_of_payments || 3,
+            variablePayments: profile.variable_payments
+              ? JSON.parse(JSON.stringify(profile.variable_payments))
+              : [{ amount: '', dueDate: '' }]
+          };
+          
+          console.log('Setting form data for editing:', newFormData);
+          setFormData(newFormData);
+        }
+        // If profile exists but we're not in edit mode, show error
+        else if (data.profile_created && !isEditMode) {
+          setError('A profile has already been created for this application. Use the edit option to modify it.');
+          // We need to update the application state to reflect that a profile has been created
+          setSubmitting(true); // Disable form submission
         }
         
-        // Get current date for profile creation date
-        const today = new Date();
-        const currentDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-        console.log(`Setting profile creation date to current date: ${currentDate}`);
-        
-        setFormData({
-          ...formData,
-          retreatDate: currentDate, // Set to current date instead of retreat date
-          husbandFirstName: data.his_name?.first || '',
-          husbandLastName: data.his_name?.last || '',
-          husbandEmail: data.his_email || '',
-          wifeFirstName: data.her_name?.first || '',
-          wifeLastName: data.her_name?.last || '',
-          wifeEmail: data.her_email || ''
-        });
+        // Only set form data from application if we're not in edit mode or if there's no existing profile
+        // Use the already defined variables from above
+        if (searchParams.get('edit') !== 'true' || !(data.participants &&
+          (Array.isArray(data.participants) ? data.participants.length > 0 : true))) {
+          // Get current date for profile creation date
+          const today = new Date();
+          const currentDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+          console.log(`Setting profile creation date to current date: ${currentDate}`);
+          
+          setFormData({
+            ...formData,
+            retreatDate: currentDate, // Set to current date instead of retreat date
+            husbandFirstName: data.his_name?.first || '',
+            husbandLastName: data.his_name?.last || '',
+            husbandEmail: data.his_email || '',
+            wifeFirstName: data.her_name?.first || '',
+            wifeLastName: data.her_name?.last || '',
+            wifeEmail: data.her_email || ''
+          });
+        }
       }
     } catch (error: any) {
       console.error('Error fetching application:', error);
@@ -175,7 +217,7 @@ export default function CreateProfilePage() {
     
     // Check if we have valid dates to calculate payment schedule
     if (!formData.retreatDate || !application?.retreat_date) {
-      return { amount: 0, numberOfPayments: 0 };
+      return { amount: 0, numberOfPayments: 0, paymentDates: [] };
     }
     
     // Calculate time between profile creation date and retreat date
@@ -200,7 +242,7 @@ export default function CreateProfilePage() {
     // If dates are invalid or retreat date is before profile creation date, return 0
     if (isNaN(profileCreationDate.getTime()) || isNaN(retreatDate.getTime()) ||
         retreatDate <= profileCreationDate) {
-      return { amount: 0, numberOfPayments: 0 };
+      return { amount: 0, numberOfPayments: 0, paymentDates: [] };
     }
     
     // Calculate days between dates
@@ -208,12 +250,17 @@ export default function CreateProfilePage() {
     
     // Calculate number of payments based on cadence
     let numberOfPayments = 1;
+    let intervalDays = 30; // default to monthly
+    
     if (formData.paymentCadence === 'weekly') {
       numberOfPayments = Math.floor(daysBetween / 7);
+      intervalDays = 7;
     } else if (formData.paymentCadence === 'biweekly') {
       numberOfPayments = Math.floor(daysBetween / 14);
+      intervalDays = 14;
     } else if (formData.paymentCadence === 'monthly') {
       numberOfPayments = Math.floor(daysBetween / 30);
+      intervalDays = 30;
     }
     
     // Ensure at least 1 payment
@@ -222,7 +269,25 @@ export default function CreateProfilePage() {
     // Calculate equal payments
     const paymentAmount = (feeAmount / numberOfPayments).toFixed(2);
     
-    return { amount: paymentAmount, numberOfPayments };
+    // Generate payment dates
+    const paymentDates = [];
+    for (let i = 0; i < numberOfPayments; i++) {
+      // For the first payment, use the profile creation date
+      let paymentDate;
+      if (i === 0) {
+        paymentDate = new Date(profileCreationDate);
+      } else {
+        // For subsequent payments, add the interval
+        paymentDate = new Date(profileCreationDate);
+        paymentDate.setDate(paymentDate.getDate() + (i * intervalDays));
+      }
+      paymentDates.push(paymentDate);
+    }
+    
+    console.log(`Calculated ${numberOfPayments} payments of $${paymentAmount} each with dates:`,
+      paymentDates.map(d => d.toISOString().split('T')[0]));
+    
+    return { amount: paymentAmount, numberOfPayments, paymentDates };
   };
   
   const handleSubmit = async (e: React.FormEvent) => {
@@ -235,6 +300,15 @@ export default function CreateProfilePage() {
     if (application?.profile_created && !isEditMode) {
       setError('A profile has already been created for this application.');
       return;
+    }
+    
+    // If we're in edit mode, we should allow updating even if profile_created is true
+    if (isEditMode) {
+      console.log('Edit mode is active, allowing update of existing profile');
+      // Reset any previous error about profile already created
+      if (error === 'A profile has already been created for this application.') {
+        setError(null);
+      }
     }
     
     setSubmitting(true);
@@ -384,9 +458,18 @@ export default function CreateProfilePage() {
       console.log('Creating participant with data:', JSON.stringify(participantData, null, 2));
       
       // Check if we're updating an existing profile or creating a new one
-      if (isEditMode && application?.participants && application.participants.length > 0) {
+      if (isEditMode && application?.participants) {
         // Update existing participant record
-        const profileId = application.participants[0].id;
+        // Handle both cases: when participants is an array and when it's an object
+        const profileId = Array.isArray(application.participants)
+          ? (application.participants.length > 0 ? application.participants[0].id : null)
+          : application.participants.id;
+          
+        console.log('Updating profile with ID:', profileId);
+        
+        if (!profileId) {
+          throw new Error('Could not determine profile ID for update');
+        }
         
         // For updates, we should preserve the original created_at date
         // Remove created_at from participantData to avoid overwriting it
@@ -423,9 +506,15 @@ export default function CreateProfilePage() {
                 profile_created: true
               });
             }
-            throw new Error('A profile has already been created for this application.');
+            // Only throw error if we're not in edit mode
+            if (!searchParams.get('edit')) {
+              throw new Error('A profile has already been created for this application.');
+            } else {
+              console.error('Unique constraint violation, but we are in edit mode so continuing');
+            }
+          } else {
+            throw participantError;
           }
-          throw participantError;
         }
         
         // Update application to mark profile as created
@@ -436,23 +525,68 @@ export default function CreateProfilePage() {
           
         if (updateError) throw updateError;
         
-        // Create user accounts and send welcome emails
-        const accountResponse = await fetch('/api/admin/create-couple-accounts', {
+        // Create user accounts
+        try {
+          console.log('Calling create-couple-accounts API with:', {
+            profileId: participant.id,
+            husbandEmail: formData.husbandEmail,
+            wifeEmail: formData.wifeEmail
+          });
+          
+          const accountResponse = await fetch('/api/admin/create-couple-accounts', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              profileId: participant.id,
+              husbandEmail: formData.husbandEmail,
+              wifeEmail: formData.wifeEmail,
+            }),
+          });
+          
+          console.log('Account creation response status:', accountResponse.status);
+          
+          // Check if response is OK before trying to parse JSON
+          if (!accountResponse.ok) {
+            const responseText = await accountResponse.text();
+            console.error('Error response from create-couple-accounts:', responseText);
+            
+            // Try to parse as JSON if possible
+            try {
+              const errorData = JSON.parse(responseText);
+              throw new Error(errorData.error || 'Failed to create user accounts');
+            } catch (parseError) {
+              throw new Error(`Failed to create user accounts: ${responseText.substring(0, 100)}...`);
+            }
+          }
+          
+          const accountData = await accountResponse.json();
+          console.log('Account creation successful:', accountData);
+        } catch (accountError) {
+          console.error('Error in account creation process:', accountError);
+          throw accountError;
+        }
+        
+        // Send welcome emails
+        console.log('Sending welcome emails to newly created profile:', participant.id);
+        const emailResponse = await fetch('/api/admin/send-welcome-email', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            profileId: participant.id,
-            husbandEmail: formData.husbandEmail,
-            wifeEmail: formData.wifeEmail,
+            participantId: participant.id,
           }),
         });
         
-        const accountData = await accountResponse.json();
+        const emailData = await emailResponse.json();
         
-        if (!accountResponse.ok) {
-          throw new Error(accountData.error || 'Failed to create user accounts');
+        if (!emailResponse.ok) {
+          console.error('Failed to send welcome emails:', emailData.error);
+          // Continue even if email sending fails
+        } else {
+          console.log('Welcome emails sent successfully:', emailData);
         }
         
         // Redirect to success page or back to intake
@@ -770,7 +904,13 @@ export default function CreateProfilePage() {
                                 </p>
                                 <div className="mt-2 pt-2 border-t border-gray-200">
                                   <p className="text-xs text-gray-500">
-                                    Payment period: {new Date(formData.retreatDate).toLocaleDateString()} to {(() => {
+                                    Payment period: {(() => {
+                                      // Ensure date is displayed in local timezone without time adjustment
+                                      const date = new Date(formData.retreatDate);
+                                      const isoDate = date.toISOString().split('T')[0];
+                                      // Create a new date from the ISO date string
+                                      return new Date(isoDate + 'T00:00:00').toLocaleDateString();
+                                    })()} to {(() => {
                                       // Parse retreat date correctly if it's in the format "March 5-9, 2025"
                                       let retreatDateStr = application.retreat_date;
                                       if (retreatDateStr.includes('-')) {
@@ -782,72 +922,36 @@ export default function CreateProfilePage() {
                                           return date.toLocaleDateString();
                                         }
                                       }
-                                      return new Date(retreatDateStr).toLocaleDateString();
+                                      // Ensure date is displayed in local timezone without time adjustment
+                                      const date = new Date(retreatDateStr);
+                                      const isoDate = date.toISOString().split('T')[0];
+                                      // Create a new date from the ISO date string
+                                      return new Date(isoDate + 'T00:00:00').toLocaleDateString();
                                     })()}
                                   </p>
                                   {(() => {
-                                    // Calculate and display payment dates
-                                    const profileCreationDate = new Date(formData.retreatDate);
+                                    // Get payment dates from the calculateFixedPayments function
+                                    const { paymentDates } = calculateFixedPayments();
                                     
-                                    // Parse retreat date correctly if it's in the format "March 5-9, 2025"
-                                    let retreatDateStr = application.retreat_date;
-                                    if (retreatDateStr.includes('-')) {
-                                      const match = retreatDateStr.match(/([A-Za-z]+)\s+(\d+)[-–]\d+,\s+(\d{4})/);
-                                      if (match) {
-                                        const [_, month, day, year] = match;
-                                        // Create a proper date object with the correct year
-                                        const date = new Date(`${month} ${day}, ${year}`);
-                                        // Format the date as YYYY-MM-DD
-                                        retreatDateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-                                        console.log(`Parsed retreat date in payment summary: ${retreatDateStr} from "${application.retreat_date}"`);
-                                      }
-                                    }
-                                    
-                                    const retreatDate = new Date(retreatDateStr);
-                                    
-                                    if (isNaN(profileCreationDate.getTime()) || isNaN(retreatDate.getTime()) ||
-                                        retreatDate <= profileCreationDate) {
+                                    if (paymentDates.length === 0) {
                                       return <p className="text-xs text-red-500 mt-1">Invalid date range</p>;
-                                    }
-                                    
-                                    // Calculate days between dates
-                                    const daysBetween = Math.floor((retreatDate.getTime() - profileCreationDate.getTime()) / (1000 * 60 * 60 * 24));
-                                    
-                                    // Calculate maximum number of payments based on cadence
-                                    let maxPayments = 1;
-                                    let intervalDays = 30; // default to monthly
-                                    
-                                    if (formData.paymentCadence === 'weekly') {
-                                      maxPayments = Math.floor(daysBetween / 7);
-                                      intervalDays = 7;
-                                    } else if (formData.paymentCadence === 'biweekly') {
-                                      maxPayments = Math.floor(daysBetween / 14);
-                                      intervalDays = 14;
-                                    } else if (formData.paymentCadence === 'monthly') {
-                                      maxPayments = Math.floor(daysBetween / 30);
-                                      intervalDays = 30;
-                                    }
-                                    
-                                    // Get the calculated number of payments
-                                    const actualPayments = calculateFixedPayments().numberOfPayments;
-                                    
-                                    // Generate payment dates
-                                    const paymentDates = [];
-                                    for (let i = 0; i < actualPayments; i++) {
-                                      const paymentDate = new Date(profileCreationDate);
-                                      paymentDate.setDate(paymentDate.getDate() + (i * intervalDays));
-                                      paymentDates.push(paymentDate);
                                     }
                                     
                                     return (
                                       <div className="mt-2 text-xs text-gray-600">
                                         <p className="font-medium">Estimated Payment Dates:</p>
                                         <ul className="mt-1 space-y-1">
-                                          {paymentDates.map((date, index) => (
-                                            <li key={index}>
-                                              Payment {index + 1}: {date.toLocaleDateString()}
-                                            </li>
-                                          ))}
+                                          {paymentDates.map((date, index) => {
+                                            // Ensure date is displayed in local timezone without time adjustment
+                                            const isoDate = date.toISOString().split('T')[0];
+                                            // Create a new date from the ISO date string
+                                            const localDate = new Date(isoDate + 'T00:00:00');
+                                            return (
+                                              <li key={index}>
+                                                Payment {index + 1}: {localDate.toLocaleDateString()}
+                                              </li>
+                                            );
+                                          })}
                                         </ul>
                                       </div>
                                     );
@@ -934,7 +1038,13 @@ export default function CreateProfilePage() {
                             {formData.retreatDate && application?.retreat_date && (
                               <div className="mt-2 pt-2 border-t border-gray-200">
                                 <p className="text-xs text-gray-500">
-                                  Valid payment dates: {new Date(formData.retreatDate).toLocaleDateString()} to {(() => {
+                                  Valid payment dates: {(() => {
+                                    // Ensure date is displayed in local timezone without time adjustment
+                                    const date = new Date(formData.retreatDate);
+                                    const isoDate = date.toISOString().split('T')[0];
+                                    // Create a new date from the ISO date string
+                                    return new Date(isoDate + 'T00:00:00').toLocaleDateString();
+                                  })()} to {(() => {
                                     // Parse retreat date correctly if it's in the format "March 5-9, 2025"
                                     let retreatDateStr = application.retreat_date;
                                     if (retreatDateStr.includes('-')) {
@@ -946,7 +1056,11 @@ export default function CreateProfilePage() {
                                         return date.toLocaleDateString();
                                       }
                                     }
-                                    return new Date(retreatDateStr).toLocaleDateString();
+                                    // Ensure date is displayed in local timezone without time adjustment
+                                    const date = new Date(retreatDateStr);
+                                    const isoDate = date.toISOString().split('T')[0];
+                                    // Create a new date from the ISO date string
+                                    return new Date(isoDate + 'T00:00:00').toLocaleDateString();
                                   })()}
                                 </p>
                                 

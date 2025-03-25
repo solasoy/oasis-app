@@ -1,5 +1,4 @@
 import { AdminTile } from '@/components/admin/admin-tile';
-import { AdminLayout } from '@/components/admin/admin-layout';
 
 export default function AdminPage() {
   // Icons for the admin tiles
@@ -40,57 +39,55 @@ export default function AdminPage() {
   );
 
   return (
-    <AdminLayout>
-      <div className="space-y-6">
-        <div className="text-center py-8">
-          <h1 className="text-3xl font-bold text-gray-900">OCC Oasis Admin Portal</h1>
-          <p className="mt-2 text-lg text-gray-600">Manage applications, participants, and retreat resources</p>
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <AdminTile
-            title="Retreat Dates"
-            description="Manage retreat dates and availability"
-            href="/admin/retreat-dates"
-            icon={<RetreatDatesIcon />}
-          />
-          
-          <AdminTile
-            title="Applications"
-            description="View and manage retreat applications"
-            href="/admin/applications"
-            icon={<ApplicationsIcon />}
-          />
-          
-          <AdminTile
-            title="Intake"
-            description="Create participant profiles for approved applications"
-            href="/admin/intake"
-            icon={<IntakeIcon />}
-          />
-          
-          <AdminTile
-            title="Email"
-            description="Customize and send emails to participants"
-            href="/admin/email"
-            icon={<EmailIcon />}
-          />
-          
-          <AdminTile
-            title="Customizations"
-            description="Customize documents and resources for participants"
-            href="/admin/customizations"
-            icon={<CustomizationsIcon />}
-          />
-          
-          <AdminTile
-            title="Reports"
-            description="Generate reports from application and participant data"
-            href="/admin/reports"
-            icon={<ReportsIcon />}
-          />
-        </div>
+    <div className="space-y-6">
+      <div className="text-center py-8">
+        <h1 className="text-3xl font-bold text-gray-900">OCC Oasis Admin Portal</h1>
+        <p className="mt-2 text-lg text-gray-600">Manage applications, participants, and retreat resources</p>
       </div>
-    </AdminLayout>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <AdminTile
+          title="Retreat Dates"
+          description="Manage retreat dates and availability"
+          href="/admin/retreat-dates"
+          icon={<RetreatDatesIcon />}
+        />
+        
+        <AdminTile
+          title="Applications"
+          description="View and manage retreat applications"
+          href="/admin/applications"
+          icon={<ApplicationsIcon />}
+        />
+        
+        <AdminTile
+          title="Intake"
+          description="Create participant profiles for approved applications"
+          href="/admin/intake"
+          icon={<IntakeIcon />}
+        />
+        
+        <AdminTile
+          title="Email"
+          description="Customize and send emails to participants"
+          href="/admin/email"
+          icon={<EmailIcon />}
+        />
+        
+        <AdminTile
+          title="Documents"
+          description="Customize documents and resources for participants"
+          href="/admin/documents"
+          icon={<CustomizationsIcon />}
+        />
+        
+        <AdminTile
+          title="Reports"
+          description="Generate reports from application and participant data"
+          href="/admin/reports"
+          icon={<ReportsIcon />}
+        />
+      </div>
+    </div>
   );
 }

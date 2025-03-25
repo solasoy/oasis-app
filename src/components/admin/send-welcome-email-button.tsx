@@ -9,12 +9,12 @@ interface SendWelcomeEmailButtonProps {
 
 export default function SendWelcomeEmailButton({ participantId, welcomeEmailSent = false }: SendWelcomeEmailButtonProps) {
   const [loading, setLoading] = useState(false);
-  const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [status, setStatus] = useState<'idle' | 'success' | 'error' | 'already_sent'>('idle');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [emailSent, setEmailSent] = useState(welcomeEmailSent);
 
-  const sendWelcomeEmail = async () => {
-    if (loading || emailSent) return;
+  const sendWelcomeEmail = async (forceResend = false) => {
+    if (loading) return;
 
     try {
       setLoading(true);
@@ -26,33 +26,102 @@ export default function SendWelcomeEmailButton({ participantId, welcomeEmailSent
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ participantId }),
+        body: JSON.stringify({ 
+          participantId, 
+          forceResend 
+        }),
       });
 
-      const data = await response.json();
+      // Log raw response for debugging
+      console.log('Raw response status:', response.status);
+      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to send welcome email');
+      // Get response text for detailed logging
+      const responseText = await response.text();
+      console.log('Raw response text:', responseText);
+
+      // Attempt to parse JSON
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error('Failed to parse JSON:', parseError);
+        console.error('Unparseable response text:', responseText);
+        throw new Error(`Invalid server response: ${responseText}`);
       }
 
-      setStatus('success');
-      setEmailSent(true);
+      // Log parsed data
+      console.log('Parsed response data:', data);
+
+      // Validate response structure
+      if (data === null || typeof data !== 'object') {
+        throw new Error('Response is not a valid object');
+      }
+
+      // Handle different response scenarios
+      if (!response.ok) {
+        // Server returned an error response
+        throw new Error(data.details || data.error || 'Failed to send welcome email');
+      }
+
+      // Determine email status
+      const emailStatus = 
+        data.emailStatus === 'already_sent' ? 'already_sent' :
+        data.success === false ? 'error' :
+        data.emailStatus === 'partial' ? 'error' :
+        'success';
+
+      // Set status based on response
+      switch (emailStatus) {
+        case 'success':
+          setStatus('success');
+          setEmailSent(true);
+          break;
+        case 'already_sent':
+          setStatus('already_sent');
+          setEmailSent(true);
+          break;
+        case 'error':
+          setStatus('error');
+          setErrorMessage(
+            data.emailErrors 
+              ? `Email send failed: ${data.emailErrors.join(', ')}` 
+              : data.details || 'Email send failed'
+          );
+          break;
+        default:
+          // Unexpected response format
+          throw new Error(`Unexpected email status: ${emailStatus}`);
+      }
     } catch (error) {
-      console.error('Error sending welcome email:', error);
+      console.error('Complete error in sending welcome email:', error);
       setStatus('error');
-      setErrorMessage(error instanceof Error ? error.message : 'An unknown error occurred');
+      setErrorMessage(
+        error instanceof Error 
+          ? error.message 
+          : 'An unexpected error occurred while sending the welcome email'
+      );
     } finally {
       setLoading(false);
     }
   };
 
+  // Render different states
   if (emailSent) {
     return (
-      <div className="flex items-center text-green-600">
-        <svg className="h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-        </svg>
-        Welcome Email Sent
+      <div className="flex items-center space-x-2">
+        <div className="flex items-center text-green-600">
+          <svg className="h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+          </svg>
+          Welcome Email Sent
+        </div>
+        <button
+          onClick={() => sendWelcomeEmail(true)}
+          className="text-blue-600 hover:text-blue-800 text-sm underline"
+        >
+          Resend
+        </button>
       </div>
     );
   }
@@ -60,7 +129,7 @@ export default function SendWelcomeEmailButton({ participantId, welcomeEmailSent
   return (
     <div>
       <button
-        onClick={sendWelcomeEmail}
+        onClick={() => sendWelcomeEmail()}
         disabled={loading}
         className={`inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md shadow-sm text-white ${
           loading ? 'bg-blue-400' : 'bg-blue-600 hover:bg-blue-700'
@@ -87,6 +156,12 @@ export default function SendWelcomeEmailButton({ participantId, welcomeEmailSent
       {status === 'success' && (
         <div className="mt-2 text-sm text-green-600">
           Welcome email sent successfully!
+        </div>
+      )}
+
+      {status === 'already_sent' && (
+        <div className="mt-2 text-sm text-blue-600">
+          Welcome email was previously sent.
         </div>
       )}
 
