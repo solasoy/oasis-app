@@ -1,7 +1,7 @@
 import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
 import Link from 'next/link';
-import { ProfileActions } from '@/components/admin/profile-actions';
+import { ParticipantActionButtons } from '@/components/admin/participant-action-buttons';
 
 // Force Next.js to not cache this page
 export const dynamic = 'force-dynamic';
@@ -19,21 +19,6 @@ export default async function IntakePage() {
     `)
     .eq('status', 'approved')
     .order('submitted_at', { ascending: false });
-  
-  // Debug: Log the applications data to see what we're getting
-  console.log('Applications data:', JSON.stringify(applications, null, 2));
-  
-  // Check if participants data is being returned correctly
-  if (applications) {
-    applications.forEach((app, index) => {
-      console.log(`Application ${index + 1} (${app.id}):`, {
-        hasParticipants: !!app.participants && (Array.isArray(app.participants) ? app.participants.length > 0 : !!app.participants),
-        participantsType: app.participants ? (Array.isArray(app.participants) ? 'array' : typeof app.participants) : 'undefined',
-        participantsCount: app.participants ? (Array.isArray(app.participants) ? app.participants.length : 1) : 0,
-        participantIds: app.participants ? (Array.isArray(app.participants) ? app.participants.map((p: any) => p.id) : [app.participants.id]) : []
-      });
-    });
-  }
   
   // Check if the error is due to missing profile_created column
   const isColumnMissingError = error && error.code === '42703' &&
@@ -105,42 +90,56 @@ WHERE table_name = 'applications' AND column_name = 'profile_created';`}</pre>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {applications.map((app) => (
-                      <tr key={app.id}>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-gray-900">
-                            {app.his_name.first} {app.his_name.last} & {app.her_name.first} {app.her_name.last}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-500">{app.retreat_date}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-500">
-                            {app.submitted_at ? (() => {
-                              // Ensure date is displayed in local timezone without time adjustment
-                              const date = new Date(app.submitted_at);
-                              // Format as YYYY-MM-DD to avoid timezone issues
-                              const isoDate = date.toISOString().split('T')[0];
-                              // Create a new date from the ISO date string
-                              return new Date(isoDate + 'T00:00:00').toLocaleDateString();
-                            })() : 'N/A'}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          {/* Debug info */}
-                          <div className="text-xs text-gray-500 mb-2">
-                            Profile ID: {app.participants ? (Array.isArray(app.participants) ? (app.participants[0]?.id || 'None') : app.participants.id || 'None') : 'None'}<br/>
-                            Profile Created: {app.participants ? 'Yes' : 'No'}
-                          </div>
-                          <ProfileActions
-                            applicationId={app.id}
-                            profileId={app.participants ? (Array.isArray(app.participants) ? app.participants[0]?.id : app.participants.id) : undefined}
-                            profileCreated={!!app.participants}
-                          />
-                        </td>
-                      </tr>
-                    ))}
+                    {applications.map((app) => {
+                      // Normalize participants to always be an array
+                      const participants = Array.isArray(app.participants) 
+                        ? app.participants 
+                        : (app.participants ? [app.participants] : []);
+                      
+                      // Use the first participant or create a placeholder
+                      const participant = participants[0] || {
+                        id: null,
+                        profile_created: false,
+                        husband_email: `${app.his_name.first} ${app.his_name.last}`,
+                        wife_email: `${app.her_name.first} ${app.her_name.last}`,
+                        husband_temp_password: null,
+                        wife_temp_password: null,
+                        husband_auth_id: null,
+                        wife_auth_id: null,
+                        welcome_email_sent: false
+                      };
+
+                      return (
+                        <tr key={app.id}>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm font-medium text-gray-900">
+                              {app.his_name.first} {app.his_name.last} & {app.her_name.first} {app.her_name.last}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-500">{app.retreat_date}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-500">
+                              {app.submitted_at ? (() => {
+                                const date = new Date(app.submitted_at);
+                                const isoDate = date.toISOString().split('T')[0];
+                                return new Date(isoDate + 'T00:00:00').toLocaleDateString();
+                              })() : 'N/A'}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <ParticipantActionButtons 
+                              participant={{
+                                ...participant,
+                                id: participant.id || app.id,
+                                profile_created: !!participants.length
+                              }} 
+                            />
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>

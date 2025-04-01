@@ -9,16 +9,33 @@ const supabase = createClient(
 
 export async function GET(request: Request) {
   try {
-    // In a real implementation, we would get the participant from the session
-    // For now, we'll use the participantId from the query parameters
+    // Try to get participant from session first
+    const sessionParticipantId = getParticipantFromSession();
+    
+    // Fallback to query parameters if no participant found in session
     const url = new URL(request.url);
-    const participantId = url.searchParams.get('participantId');
+    const queryParticipantId = url.searchParams.get('participantId');
+    
+    const participantId = sessionParticipantId || queryParticipantId;
     
     if (!participantId) {
+      // Log detailed information only in non-production environments
+      if (process.env.NODE_ENV !== 'production') {
+        console.error('No participant ID found', {
+          sessionParticipantId,
+          queryParticipantId,
+          requestUrl: request.url
+        });
+      }
+      
       return new NextResponse(JSON.stringify({
-        error: 'Missing participant ID'
+        error: 'Unable to retrieve participant ID',
+        details: process.env.NODE_ENV !== 'production' ? {
+          sessionParticipantId: !!sessionParticipantId,
+          queryParticipantId: !!queryParticipantId
+        } : undefined
       }), { 
-        status: 400,
+        status: 401,
         headers: { 'Content-Type': 'application/json' }
       });
     }
@@ -29,9 +46,16 @@ export async function GET(request: Request) {
       .select('*');
     
     if (itemsError) {
+      if (process.env.NODE_ENV !== 'production') {
+        console.error('Failed to fetch checklist items', {
+          error: itemsError,
+          participantId
+        });
+      }
+      
       return new NextResponse(JSON.stringify({
         error: 'Failed to fetch checklist items',
-        details: itemsError.message
+        details: process.env.NODE_ENV !== 'production' ? itemsError.message : undefined
       }), { 
         status: 500,
         headers: { 'Content-Type': 'application/json' }
@@ -45,9 +69,16 @@ export async function GET(request: Request) {
       .eq('participant_id', participantId);
     
     if (progressError) {
+      if (process.env.NODE_ENV !== 'production') {
+        console.error('Failed to fetch participant progress', {
+          error: progressError,
+          participantId
+        });
+      }
+      
       return new NextResponse(JSON.stringify({
         error: 'Failed to fetch participant progress',
-        details: progressError.message
+        details: process.env.NODE_ENV !== 'production' ? progressError.message : undefined
       }), { 
         status: 500,
         headers: { 'Content-Type': 'application/json' }
@@ -62,9 +93,16 @@ export async function GET(request: Request) {
       .single();
     
     if (participantError) {
+      if (process.env.NODE_ENV !== 'production') {
+        console.error('Failed to fetch participant data', {
+          error: participantError,
+          participantId
+        });
+      }
+      
       return new NextResponse(JSON.stringify({
         error: 'Failed to fetch participant data',
-        details: participantError.message
+        details: process.env.NODE_ENV !== 'production' ? participantError.message : undefined
       }), { 
         status: 500,
         headers: { 'Content-Type': 'application/json' }
@@ -96,10 +134,20 @@ export async function GET(request: Request) {
     });
     
   } catch (error) {
-    console.error('Error fetching progress:', error);
+    // Log full error details only in non-production environments
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('Unexpected error in progress route', {
+        error,
+        errorMessage: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined
+      });
+    }
+    
     return new NextResponse(JSON.stringify({
       error: 'Internal server error',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      details: process.env.NODE_ENV !== 'production' && error instanceof Error 
+        ? error.message 
+        : undefined
     }), { 
       status: 500,
       headers: { 'Content-Type': 'application/json' }

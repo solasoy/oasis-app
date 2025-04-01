@@ -103,33 +103,87 @@ export async function createParticipantAccount(
       return null;
     }
 
-    // Create user in Supabase Auth
-    const { data: userData, error: userError } = await supabase.auth.admin.createUser({
+    // Enhanced logging and validation
+    console.log(`Creating participant account for ${role}`, {
+      email,
+      passwordLength: password.length
+    });
+
+    // Check if user already exists
+    const { data: existingUsers, error: listError } = await supabase.auth.admin.listUsers({ email });
+
+    if (listError) {
+      console.error(`Error checking for existing user (${role})`, {
+        email,
+        errorDetails: listError
+      });
+    }
+
+    if (existingUsers && existingUsers.users.length > 0) {
+      console.warn(`User already exists for ${role}`, {
+        email,
+        existingUserId: existingUsers.users[0].id,
+        existingUserMetadata: existingUsers.users[0].user_metadata
+      });
+
+      // If the existing user is already a participant, attempt to delete and recreate
+      if (existingUsers.users[0].user_metadata?.account_type === 'participant') {
+        try {
+          // Delete the existing user
+          await supabase.auth.admin.deleteUser(existingUsers.users[0].id);
+          console.log(`Deleted existing participant account for ${role}`, { email });
+        } catch (deleteError) {
+          console.error(`Failed to delete existing participant account for ${role}`, {
+            email,
+            errorDetails: deleteError
+          });
+          return null;
+        }
+      }
+    }
+
+    // Create unique identifier to prevent duplicate auth IDs
+    const userMetadata = {
+      role,
+      account_type: 'participant',
+      createdAt: new Date().toISOString(),
+      uniqueIdentifier: crypto.randomUUID(), // Add a unique identifier
+      email_salt: crypto.randomBytes(16).toString('hex') // Add an email salt for extra uniqueness
+    };
+
+    // Create user in Supabase Auth if they don't exist
+    const { data: createData, error: createError } = await supabase.auth.admin.createUser({
       email,
       password,
       email_confirm: true, // Auto-confirm email
-      user_metadata: {
-        role,
-        account_type: 'participant'
-      }
+      user_metadata: userMetadata
     });
 
-    if (userError) {
+    // Log detailed creation information
+    console.log(`Participant account creation result for ${role}`, {
+      email,
+      success: !createError,
+      userId: createData?.user?.id,
+      errorDetails: createError
+    });
+
+    if (createError) {
+      // Log the specific error when creation fails
       console.error(`Error creating ${role} account`, {
         email,
-        errorDetails: userError,
-        errorCode: userError.code,
-        errorMessage: userError.message
+        errorDetails: createError,
+        errorCode: createError.code,
+        errorMessage: createError.message
       });
       return null;
     }
 
     console.log(`Successfully created ${role} account`, {
       email,
-      userId: userData.user.id
+      userId: createData.user.id
     });
 
-    return userData.user;
+    return createData.user;
   } catch (error) {
     console.error(`Unexpected error in createParticipantAccount for ${role}`, {
       email,
@@ -154,6 +208,17 @@ export function hasAccessExpired(expirationDate: string | Date): boolean {
   today.setHours(0, 0, 0, 0);
   
   return today > expDate;
+}
+
+/**
+ * Retrieves the participant from the current session
+ * @returns The participant ID or null if no participant is found in the session
+ */
+export function getParticipantFromSession(): string | null {
+  // Placeholder implementation
+  // In a real implementation, this would retrieve the participant from the session
+  // For now, return null to indicate no participant found
+  return null;
 }
 
 /**

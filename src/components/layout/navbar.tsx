@@ -1,16 +1,32 @@
 "use client";
 
 import { NavLink } from '@/components/ui/nav-link';
+import { useState, useEffect } from 'react';
 
-const navItems = [
+const navItemsBase = [
   { name: 'Home', href: '/' },
   { name: 'Apply', href: '/apply' },
   { name: 'Donations', href: '/donate' },
   { name: 'Participant', href: '/participant/login' },
-  { name: 'Admin', href: '/admin/login' },
+  // Admin link will be added dynamically
 ];
 
 export function Navbar() {
+  const [isDevMode, setIsDevMode] = useState(false);
+  const [navItems, setNavItems] = useState(navItemsBase);
+
+  useEffect(() => {
+    // Check hostname on client-side to determine dev mode
+    const dev = window.location.hostname === 'localhost';
+    setIsDevMode(dev);
+    
+    // Add the Admin link dynamically based on mode
+    setNavItems([
+      ...navItemsBase,
+      { name: 'Admin', href: dev ? '/admin-bypass' : '/admin/login' },
+    ]);
+  }, []);
+
   return (
     <nav className="bg-white shadow-sm border-b border-gray-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

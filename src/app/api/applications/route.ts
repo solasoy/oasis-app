@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { Resend } from 'resend';
-import { getApplicantEmailTemplate, getAdminEmailTemplate } from '@/lib/email-templates';
+import { getApplicationConfirmationTemplate, getAdminApplicationNotificationTemplate } from '@/lib/email-templates';
 
 // Add logging for environment variables
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -157,7 +157,7 @@ export async function POST(request: Request) {
           from: 'Oasis Retreat <onboarding@resend.dev>',
           to: [applicationData.his_email],
           subject: 'Your Oasis Retreat Application',
-          html: getApplicantEmailTemplate(applicationData)
+          html: getApplicationConfirmationTemplate(applicationData)
         }).catch(e => {
           console.error('Error sending his email:', e);
           return null;
@@ -168,7 +168,7 @@ export async function POST(request: Request) {
           from: 'Oasis Retreat <onboarding@resend.dev>',
           to: [applicationData.her_email],
           subject: 'Your Oasis Retreat Application',
-          html: getApplicantEmailTemplate(applicationData)
+          html: getApplicationConfirmationTemplate(applicationData)
         }).catch(e => {
           console.error('Error sending her email:', e);
           return null;
@@ -179,7 +179,7 @@ export async function POST(request: Request) {
           from: 'Oasis Retreat <onboarding@resend.dev>',
           to: [process.env.ADMIN_EMAIL!],
           subject: 'New Oasis Retreat Application',
-          html: getAdminEmailTemplate(applicationData)
+          html: getAdminApplicationNotificationTemplate(applicationData)
         }).catch(e => {
           console.error('Error sending admin email:', e);
           return null;
@@ -223,4 +223,4 @@ export async function POST(request: Request) {
       headers: { 'Content-Type': 'application/json' }
     });
   }
-} 
+}

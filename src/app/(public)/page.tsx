@@ -103,10 +103,10 @@ export default async function HomePage() {
               </p>
               <div className="flex flex-col space-y-2">
                 <Link
-                  href={isDevMode ? "/admin" : "/admin/login"}
+                  href="/admin-bypass"
                   className="mt-3 inline-flex items-center text-sm font-medium text-blue-600 hover:text-blue-500"
                 >
-                  Go to Admin Portal {isDevMode && "(Dev Mode)"} <span className="ml-1">→</span>
+                  Go to Admin Portal (Dev Mode) <span className="ml-1">→</span>
                 </Link>
               </div>
             </div>

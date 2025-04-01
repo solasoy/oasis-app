@@ -219,6 +219,14 @@ export async function authenticateRequest(
         }, options.adminOnly ? 'admin' : 'participant');
       }
     }
+  
+    // Force redirect to participant dashboard
+    if (options.participantOnly && user) {
+      console.error('FORCE REDIRECT TO PARTICIPANT DASHBOARD', {
+        email: user.email
+      });
+      return NextResponse.redirect(new URL('/dashboard/participant', request.url));
+    }
     
     logAuthEvent('info', 'Authentication successful', {
       path: request.nextUrl.pathname,

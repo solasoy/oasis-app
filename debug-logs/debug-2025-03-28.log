@@ -1,0 +1,84 @@
+[2025-03-28T02:17:28.849Z] Resend Configuration Verification
+{
+  "apiKeyPresent": true,
+  "apiKeyLength": 36,
+  "fromEmail": "onboarding@resend.dev",
+  "ownerEmail": "solasoy2000@gmail.com",
+  "isDevelopment": true
+}
+
+[2025-03-28T02:17:28.859Z] Welcome Email Request Received
+{
+  "participantId": "a53c0da7-84fb-4192-8d1e-ac373b0ed65c",
+  "role": "both"
+}
+
+[2025-03-28T02:17:28.976Z] Retreat Date Parsing
+{
+  "originalDateString": "June 16-19, 2025",
+  "extractedYear": "2025",
+  "parsedDate": "2025-06-16T05:00:00.000Z"
+}
+
+[2025-03-28T02:17:28.978Z] Resend Configuration Verification
+{
+  "apiKeyPresent": true,
+  "apiKeyLength": 36,
+  "fromEmail": "onboarding@resend.dev",
+  "ownerEmail": "solasoy2000@gmail.com",
+  "isDevelopment": true
+}
+
+[2025-03-28T02:17:28.980Z] Preparing husband email
+{
+  "originalRecipient": "jackm@email.com",
+  "finalRecipient": "solasoy2000@gmail.com",
+  "retreatDate": "Monday, June 16, 2025",
+  "isDevelopment": true,
+  "fromEmail": "onboarding@resend.dev"
+}
+
+[2025-03-28T02:17:28.984Z] Preparing wife email
+{
+  "originalRecipient": "cassm@email.com",
+  "finalRecipient": "solasoy2000@gmail.com",
+  "retreatDate": "Monday, June 16, 2025",
+  "isDevelopment": true,
+  "fromEmail": "onboarding@resend.dev"
+}
+
+[2025-03-28T02:17:29.838Z] HUSBAND Email Sent
+{
+  "response": {
+    "data": {
+      "id": "d296f95d-952c-437b-bb01-c909ffede28d"
+    },
+    "error": null
+  },
+  "originalRecipient": "jackm@email.com",
+  "finalRecipient": "solasoy2000@gmail.com"
+}
+
+[2025-03-28T02:17:29.896Z] WIFE Email Sent
+{
+  "response": {
+    "data": {
+      "id": "91232e01-e602-4162-a6b7-3f158c47d341"
+    },
+    "error": null
+  },
+  "originalRecipient": "cassm@email.com",
+  "finalRecipient": "solasoy2000@gmail.com"
+}
+
+[2025-03-28T02:17:29.897Z] Email Sending Summary
+{
+  "totalAttempts": 2,
+  "successfulEmails": 2,
+  "failedEmails": 0,
+  "emails": [
+    "solasoy2000@gmail.com",
+    "solasoy2000@gmail.com"
+  ]
+}
+
